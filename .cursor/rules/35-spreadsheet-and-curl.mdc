@@ -1,0 +1,56 @@
+---
+description: スプシ（TSV）データ構造の参照場所と、curlでのGAS API応答確認手順
+alwaysApply: false
+---
+# スプシデータ構造参照 + curl 検証ガイド
+
+このルールは、APIスキーマ確定やデータ完全性の担保時に参照する資料の場所と、GAS APIの応答を手元で即確認するための `curl` 手順をまとめたものです。
+
+## スプシ（TSV）データの参照場所
+スプレッドシートの各シートは、リポジトリ内の TSV サンプルで確認できます。列名・日付形式・主キー（SKU/ASIN）などは以下のファイルで把握してください。
+
+- 日次売上集計: [スプシデータ形式/商品管理システム_v3 - 日次売上集計](mdc:スプシデータ形式/商品管理システム_v3 - 日次売上集計)
+- 商品別売上集計: [スプシデータ形式/商品管理システム_v3 - 商品別売上集計](mdc:スプシデータ形式/商品管理システム_v3 - 商品別売上集計)
+- 商品別日次売上集計: [スプシデータ形式/商品管理システム_v3 - 商品別日次売上集計](mdc:スプシデータ形式/商品管理システム_v3 - 商品別日次売上集計)
+- 商品別在庫日次集計: [スプシデータ形式/商品管理システム_v3 - 商品別在庫日次集計](mdc:スプシデータ形式/商品管理システム_v3 - 商品別在庫日次集計)
+- 全体在庫日次集計: [スプシデータ形式/商品管理システム_v3 - 全体在庫日次集計](mdc:スプシデータ形式/商品管理システム_v3 - 全体在庫日次集計)
+- 商品マスタ: [スプシデータ形式/商品管理システム_v3 - 商品マスタ](mdc:スプシデータ形式/商品管理システム_v3 - 商品マスタ)
+- 商品状態（推奨発注・需要予測）: [スプシデータ形式/商品管理システム_v3 - 商品状態](mdc:スプシデータ形式/商品管理システム_v3 - 商品状態)
+- 商品別カート取得率集計（ASIN基準・加重平均/総セッション）: [スプシデータ形式/商品管理システム_v3 - 商品別カート取得率集計](mdc:スプシデータ形式/商品管理システム_v3 - 商品別カート取得率集計)
+
+メモ
+- 日付は `YYYY/MM/DD` 形式のケースがあり得ます。API側では `YYYY-MM-DD` へ正規化して比較しています。
+- JOIN 主キーは基本 `SKU`、Buybox は `ASIN` → `商品マスタ` で SKU へ連携。
+
+## GAS API を curl で即時検証する
+前提: `GAS_API_BASE`（/exec）と `GAS_API_KEY`（= GAS側 APP_TOKEN）が利用可能であること。
+
+環境変数例（必要時）:
+```bash
+export GAS_API_BASE="https://script.google.com/macros/s/AKfy.../exec"
+export GAS_API_KEY="super-secret-long-token"
+```
+
+リダイレクト追従（-L）推奨。`debug=1` で件数や期間レンジを body に `_debug` として返すよう実装されています。
+
+- ダッシュボード（期間KPI）
+```bash
+curl -sL "$GAS_API_BASE?key=$GAS_API_KEY&path=dashboard&from=2025-08-20&to=2025-10-19&debug=1" | jq .
+```
+
+- 一覧（SKU集計 + 在庫末日 + 状態/需要/推奨 + Buybox加重平均）
+```bash
+curl -sL "$GAS_API_BASE?key=$GAS_API_KEY&path=products&from=2025-08-20&to=2025-10-19&debug=1" | jq '{count: (.items|length), sample: .items[0], _debug}'
+```
+
+- 詳細（SKU指定の時系列）
+```bash
+SKU="IG-7R9N-WKWK"
+curl -sL "$GAS_API_BASE?key=$GAS_API_KEY&path=product&sku=$SKU&from=2025-08-20&to=2025-10-19&debug=1" | jq '{kpis: .kpis, seriesLens: {rev: (.series.revenueDaily|length), units: (.series.unitsDaily|length), stock: (.series.stockDaily|length)}, _debug}'
+```
+
+チェック観点
+- `_debug` の件数と期間レンジが TSV と整合していること
+- `products.items[].buyboxRate` は「平均カート取得率（30日）」×「総セッション数（30日）」での加重平均に基づくこと
+- `product.series.*Daily` が空でないこと（SKU/期間に応じて）
+

@@ -1,0 +1,27 @@
+---
+alwaysApply: true
+description: キャッシュ/鮮度（GAS CacheService / Next ISR+SWR / revalidate）
+---
+# キャッシュ・鮮度戦略
+
+参照: [仕様書.md](mdc:仕様書.md)「5. キャッシュ・更新」「7. デプロイ手順」
+
+## GAS 側
+- 軽量APIは `CacheService` で 120秒 程度のキャッシュを基本。
+- キーはクエリ（`from:to:grain:sku` など）で一意化。
+- エラーも短期キャッシュし、スパイク抑制。
+
+## Next 側
+- ページは ISR（例: 30分）で再生成。クライアントは SWR（例: 60秒）。
+- API ルートは `cache: 'no-store'` を基本とし、表示側のキャッシュ戦略に委ねる。
+
+## 即時反映
+- データ更新直後に `/app/api/revalidate?secret=REVALIDATE_SECRET&path=/...` を叩いて再生成。
+- `REVALIDATE_SECRET` はサーバ側のみ。公開しない。
+
+## 注意
+- キャッシュの階層（GAS→Next→ブラウザ）を意識し、二重/三重キャッシュによる鮮度遅延に注意。
+- SKU 単位の詳細ページは一覧より短い SWR にするなど、用途別にTTLを最適化。
+
+このルールはプロジェクト横断で適用されます。
+

@@ -1,0 +1,26 @@
+---
+globs: apps/web/**,*.ts,*.tsx
+description: 認証/認可（Googleログイン＋allowlist）とUI閲覧制限の必須方針
+---
+# 認証・認可・閲覧制限ルール
+
+参照: [仕様書.md](mdc:仕様書.md)「4. Next.js（閲覧制限）」、[設計書.md](mdc:設計書.md)「2. 各ページ詳細」
+
+## 原則
+- UIは Google 認証（Auth.js/NextAuth）を必須とする。
+- 許可メール `ALLOWED_EMAILS`（カンマ区切り）に含まれないユーザーは 403。
+- 認証・許可はサーバ側（middleware/サーバルート）で評価し、クライアント側に機密を出さない。
+
+## 実装要点
+- `middleware.ts` で未ログインを `/api/auth/signin` に誘導。
+- サーバルート/ページのロード時に `session.user.email` を取得し allowlist 判定。
+- 判定NG時は `NextResponse.json({error:'forbidden'}, { status: 403 })` ないしリダイレクト。
+- allowlist は `process.env.ALLOWED_EMAILS` を分割・トリムして大小文字を無視せず一致チェック。
+
+## セキュリティ
+- 機密（`GAS_API_KEY` など）はクライアントへ渡さない。サーバルートのみ参照可。
+- Cookie/Session 設定はデフォルトの Secure/HttpOnly を維持。
+- UIリンク・API応答に秘匿値（トークン/内部URL）を含めない。
+
+このルールは Next.js 側の TypeScriptファイル全般と `apps/web/**` に適用されます。
+

@@ -1,0 +1,17 @@
+{
+  "name": "amazon-seller-ui-monorepo",
+  "private": true,
+  "packageManager": "pnpm@9.0.0",
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "build": "turbo run build",
+    "start": "turbo run start",
+    "deploy:web": "pnpm -C apps/web vercel --prod",
+    "deploy:gas:dev": "pnpm -C apps/gas deploy:dev",
+    "deploy:gas:prod": "pnpm -C apps/gas deploy:prod"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0"
+  }
+}
+

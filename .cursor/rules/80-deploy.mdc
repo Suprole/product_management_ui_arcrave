@@ -1,0 +1,23 @@
+---
+description: デプロイ運用（GAS via clasp / Next via Vercel）
+globs: apps/gas/**,apps/web/**
+---
+# デプロイ運用ルール
+
+参照: [仕様書.md](mdc:仕様書.md)「7. デプロイ手順」「8. 実装ロードマップ」
+
+## GAS（clasp）
+- `apps/gas` はプレーンJS（ビルドなし）。`src` をそのまま push。
+- `APP_TOKEN` は Script Properties に設定。Gitに含めない。
+- `deploy:dev` / `deploy:prod` スクリプトで push→version→deploy を実行。
+
+## Next（Vercel）
+- `GAS_API_BASE/GAS_API_KEY` など環境変数を Vercel に設定。
+- ISR 突き合わせのため revalidate ルートを用意。
+
+## ロールアウト
+- 変更は GAS と Next の双方に影響しやすい。PRは小さく分割。
+- 機能フラグ/環境変数で段階的に切替可能に。
+
+このルールは `apps/gas/**` と `apps/web/**` に適用されます。
+

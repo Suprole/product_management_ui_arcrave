@@ -1,0 +1,33 @@
+# apps/web/components/ui/context-menu.tsx
+
+- **役割**: 再利用可能なUIコンポーネント
+- **カテゴリ**: UIプリミティブ（ボタン、入力、レイアウト等）
+
+- **セキュリティ**: 機密（GAS_API_KEY等）はサーバのみ参照。クライアントへ出さない。
+- **キャッシュ**: GAS=120秒、UI=ISR+SWR の多層キャッシュを意識する。
+
+---
+<reference (first 20 lines)>
+
+````
+'use client'
+
+import * as React from 'react'
+import * as ContextMenuPrimitive from '@radix-ui/react-context-menu'
+import { CheckIcon, ChevronRightIcon, CircleIcon } from 'lucide-react'
+
+import { cn } from '@/lib/utils'
+
+function ContextMenu({
+  ...props
+}: React.ComponentProps<typeof ContextMenuPrimitive.Root>) {
+  return <ContextMenuPrimitive.Root data-slot="context-menu" {...props} />
+}
+
+function ContextMenuTrigger({
+  ...props
+}: React.ComponentProps<typeof ContextMenuPrimitive.Trigger>) {
+  return (
+    <ContextMenuPrimitive.Trigger data-slot="context-menu-trigger" {...props} />
+  )
+````

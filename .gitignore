@@ -1,0 +1,20 @@
+# dependencies
+node_modules
+
+# env
+.env*
+!apps/web/.env.local.example
+
+# macOS
+.DS_Store
+
+# clasp
+.clasp.json
+
+# build outputs
+.next
+out
+dist
+
+
+スプシデータ形式

@@ -1,0 +1,29 @@
+---
+globs: apps/web/app/api/**/route.ts,*.ts
+description: GAS API へのプロキシ実装規約（サーバルート専用）
+---
+# GAS プロキシ ルール（Next サーバルート）
+
+参照: [仕様書.md](mdc:仕様書.md)「4. GASプロキシ例」
+
+## 不変条件
+- クライアントは直接 GAS を叩かない。必ず `/app/api/gas/*` を叩く。
+- サーバルートは `GAS_API_BASE` に対し `?key=GAS_API_KEY` を必ず付与して代理呼出。
+- `key` はクライアントに露出させない（レスポンス/ログ/エラー含む）。
+
+## 典型的な GET 実装
+- 受け取るクエリ: `from`, `to`, `grain`（day/week/month）, `sku`（必要時）。
+- GAS 側に `path` を明示（`dashboard`/`products`/`product`/`alerts`）。
+- `fetch(url, { cache: 'no-store' })` を基本。ISR/SWR はページ側で担保。
+- 応答はそのまま `NextResponse.json(data)` とし、エラー時は JSON で返却。
+
+## エラーハンドリング指針
+- GAS 側が `_status` を body に埋める実装（雛形）であるため、HTTP ステータスは 200 でもエラー表現を含み得る。
+- サーバルートでは `_status>=400` を検出したら適切な `status` を付けて返すのが望ましい。
+
+## 環境変数
+- `GAS_API_BASE`（/exec までのURL）
+- `GAS_API_KEY`（Script Properties の APP_TOKEN と一致）
+
+このルールは API ルート（`apps/web/app/api/**/route.ts`）を中心に適用されます。
+

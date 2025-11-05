@@ -1,0 +1,51 @@
+---
+alwaysApply: true
+---
+# システム全体像（概要）
+
+このリポジトリは「Amazon Seller 管理UI」を実装するための作業空間です。要件・設計の一次情報は [仕様書.md](mdc:仕様書.md) と [設計書.md](mdc:設計書.md) に集約されています。
+
+## 目的と基本方針
+- Excel/スプレッドシートの実データを読み取り、ダッシュボード/UIで可視化する閲覧特化のシステム。
+- バックエンドは2案が提示されています。
+  - 仕様書案: GAS（プレーンJS、ビルド不要、`clasp` 管理）を採用し、Next.js サーバルートがプロキシする二段防御。
+  - 設計書案: FastAPI + pandas による統合API（将来/代替方針）。
+- UIは Next.js（App Router）を想定。Google認証 + 許可メールの allowlist で閲覧制限。
+
+## 想定モノレポ構成（抜粋）
+```
+repo/
+├─ apps/
+│  ├─ web/             # Next.js (App Router)
+│  └─ gas/             # GAS（プレーンJS、ビルドなし）
+└─ packages/
+   └─ utils/
+```
+（詳細は [仕様書.md](mdc:仕様書.md) の「1. リポジトリ構成」を参照）
+
+## セキュリティ方針（最重要）
+- UI側で Google ログイン必須 + allowlist による閲覧制限。
+- GAS Web App は `?key=APP_TOKEN` が一致しない限り拒否。鍵は Next サーバルートのみが知る。クライアントへは一切出さない。
+- クライアントは必ず Next の `/app/api/gas/*` を叩く。Next サーバルートが GAS へ `key` を付与して代理呼び出しする。
+
+## 主要ページ
+- `/dashboard` 全体ダッシュボード（売上・在庫・需要総覧）
+- `/products` 商品一覧（KPI/状態/フィルタ）
+- `/products/{SKU}` 商品詳細（時系列/需要/発注判断）
+- `/alerts` アラート/発注提案
+（UI仕様は [設計書.md](mdc:設計書.md) の「2. 各ページ詳細」「5. 色・可視化ルール」を参照）
+
+## データ/シート
+- 主シート一覧と列の意味、JOINキー（SKU/ASIN）は [設計書.md](mdc:設計書.md)「3. データ統合モデル」を参照。
+- GAS 版の読み出しユーティリティ・JOIN 方針は [仕様書.md](mdc:仕様書.md)「3. GAS仕様」に雛形あり。
+
+## キャッシュ/鮮度方針
+- GAS: `CacheService`（例: 120秒）。
+- Next: ISR（例: 30分） + クライアントSWR（例: 60秒）。即時反映は `/api/revalidate` でトリガ。
+
+## 環境変数（要定義）
+- `GAS_API_BASE`、`GAS_API_KEY`、`ALLOWED_EMAILS`、`GOOGLE_CLIENT_ID`、`GOOGLE_CLIENT_SECRET`、`NEXTAUTH_SECRET`、`REVALIDATE_SECRET`
+（一覧は [仕様書.md](mdc:仕様書.md)「4. Next.js側」参照）
+
+このルールは本プロジェクトを横断して常に適用されます。
+

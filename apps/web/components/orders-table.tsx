@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Table,
   TableBody,
@@ -59,6 +59,14 @@ export function OrdersTable({ orders, onRefresh }: OrdersTableProps) {
     newStatus: OrderStatus
   } | null>(null)
   const { toast } = useToast()
+  const [mailResult, setMailResult] = useState<{ type: 'request' | 'delivery'; sentCount: number } | null>(null)
+  
+  // メール送信完了バナーの自動クローズ
+  useEffect(() => {
+    if (!mailResult) return
+    const t = setTimeout(() => setMailResult(null), 4000)
+    return () => clearTimeout(t)
+  }, [mailResult])
   
   // ソート処理
   const sortedOrders = [...orders].sort((a, b) => {
@@ -171,6 +179,7 @@ export function OrdersTable({ orders, onRefresh }: OrdersTableProps) {
           type === 'request' ? '依頼メール' : '納品完了メール'
         }を送信しました`,
       })
+      setMailResult({ type, sentCount: Number(data.sentCount || 0) })
       
       setSelectedOrders(new Set())
     } catch (err) {
@@ -186,6 +195,14 @@ export function OrdersTable({ orders, onRefresh }: OrdersTableProps) {
     <>
       <Card>
         <CardContent className="p-0">
+          {/* メール送信完了通知（インライン） */}
+          {mailResult && (
+            <div className="m-4 rounded-md border border-green-500/20 bg-green-500/10 px-4 py-3 text-sm text-green-800">
+              {mailResult.type === 'request'
+                ? `依頼メールを ${mailResult.sentCount}件 送信しました`
+                : `納品完了メールを ${mailResult.sentCount}件 送信しました`}
+            </div>
+          )}
           {/* アクションバー */}
           {selectedOrders.size > 0 && (
             <div className="flex items-center gap-2 border-b p-4">

@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { ChevronLeft, CheckCircle2, AlertCircle, Loader2, Mail, Package } from 'lucide-react'
+import { ChevronLeft, CheckCircle2, AlertCircle, Loader2, Package } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 import type { ProductSearchResult } from '@/lib/types'
 
@@ -26,7 +26,6 @@ export function OrderConfirmStep({ product, orderData, onSuccess, onBack }: Orde
   const [poId, setPoId] = useState<string | null>(null)
   const [countdown, setCountdown] = useState(5)
   const [error, setError] = useState<string | null>(null)
-  const [sendingStage, setSendingStage] = useState<'idle' | 'creating' | 'sending' | 'complete'>('idle')
   const { toast } = useToast()
   
   // 計算値
@@ -50,7 +49,6 @@ export function OrderConfirmStep({ product, orderData, onSuccess, onBack }: Orde
   const handleCreate = async () => {
     setCreating(true)
     setError(null)
-    setSendingStage('creating')
     
     try {
       // ステージ1: 発注データ作成中
@@ -69,9 +67,6 @@ export function OrderConfirmStep({ product, orderData, onSuccess, onBack }: Orde
         }),
       })
       
-      // ステージ2: メール送信中
-      setSendingStage('sending')
-      
       if (!res.ok) {
         const data = await res.json()
         throw new Error(data.error || '発注作成に失敗しました')
@@ -79,18 +74,15 @@ export function OrderConfirmStep({ product, orderData, onSuccess, onBack }: Orde
       
       const data = await res.json()
       
-      // ステージ3: 完了
-      setSendingStage('complete')
       setPoId(data.po_id)
       setSuccess(true)
       
       toast({
         title: '✅ 発注作成完了',
-        description: `発注ID: ${data.po_id} が作成され、依頼メールが送信されました`,
+        description: `発注ID: ${data.po_id} を作成しました`,
         duration: 5000,
       })
     } catch (err) {
-      setSendingStage('idle')
       setError(err instanceof Error ? err.message : '発注作成に失敗しました')
       toast({
         title: '❌ エラー',
@@ -117,9 +109,6 @@ export function OrderConfirmStep({ product, orderData, onSuccess, onBack }: Orde
               <h3 className="text-2xl font-bold text-green-900">
                 発注作成が完了しました！
               </h3>
-              <p className="text-green-800">
-                依頼メールが正常に送信されました
-              </p>
             </div>
             
             {poId && (
@@ -130,10 +119,6 @@ export function OrderConfirmStep({ product, orderData, onSuccess, onBack }: Orde
             )}
             
             <div className="space-y-3 w-full max-w-md">
-              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                <Mail className="h-4 w-4 text-green-600" />
-                <span>Suproleへメール送信済み</span>
-              </div>
               <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                 <Package className="h-4 w-4 text-green-600" />
                 <span>発注ステータス: 依頼中</span>
@@ -167,32 +152,11 @@ export function OrderConfirmStep({ product, orderData, onSuccess, onBack }: Orde
               
               <div className="space-y-2">
                 <h3 className="text-lg font-semibold text-blue-900">
-                  {sendingStage === 'creating' && '発注データを作成中...'}
-                  {sendingStage === 'sending' && '依頼メールを送信中...'}
-                  {sendingStage === 'complete' && '処理を完了しています...'}
+                  発注データを作成中...
                 </h3>
                 <p className="text-sm text-blue-700">
-                  {sendingStage === 'creating' && '発注情報を準備しています'}
-                  {sendingStage === 'sending' && 'Suproleへメールを送信しています'}
-                  {sendingStage === 'complete' && 'まもなく完了します'}
+                  発注情報を準備しています
                 </p>
-              </div>
-              
-              <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                <div className="flex items-center gap-1">
-                  <div className={`h-2 w-2 rounded-full ${sendingStage === 'creating' ? 'bg-blue-600 animate-pulse' : 'bg-green-600'}`} />
-                  <span>作成</span>
-                </div>
-                <div className="h-px w-8 bg-border" />
-                <div className="flex items-center gap-1">
-                  <div className={`h-2 w-2 rounded-full ${sendingStage === 'sending' ? 'bg-blue-600 animate-pulse' : sendingStage === 'complete' ? 'bg-green-600' : 'bg-gray-300'}`} />
-                  <span>送信</span>
-                </div>
-                <div className="h-px w-8 bg-border" />
-                <div className="flex items-center gap-1">
-                  <div className={`h-2 w-2 rounded-full ${sendingStage === 'complete' ? 'bg-blue-600 animate-pulse' : 'bg-gray-300'}`} />
-                  <span>完了</span>
-                </div>
               </div>
             </div>
           </CardContent>

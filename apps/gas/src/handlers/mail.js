@@ -34,7 +34,7 @@ function sendRequestEmail_(payload) {
   
   // メール本文生成
   var today = today_();
-  var subject = '【発注依頼】Suprole - ' + today + ' (' + targetOrders.length + '件)';
+  var subject = '【発注依頼】arc reve - ' + today + ' (' + targetOrders.length + '件)';
   var htmlBody = buildRequestEmailHtml_(targetOrders);
   
   // 送信

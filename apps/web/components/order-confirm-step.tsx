@@ -283,14 +283,12 @@ export function OrderConfirmStep({ product, orderData, onSuccess, onBack }: Orde
           {creating ? (
             <>
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              {sendingStage === 'creating' && '作成中...'}
-              {sendingStage === 'sending' && 'メール送信中...'}
-              {sendingStage === 'complete' && '完了処理中...'}
+              作成中...
             </>
           ) : (
             <>
               <CheckCircle2 className="mr-2 h-5 w-5" />
-              発注を作成してメール送信
+              発注を作成する
             </>
           )}
         </Button>

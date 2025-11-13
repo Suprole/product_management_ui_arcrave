@@ -59,10 +59,11 @@ export function OrdersView() {
     fetchOrders()
   }, [filters])
   
-  // KPI計算
-  const totalCount = orders.length
-  const totalQuantity = orders.reduce((sum, o) => sum + o.quantity, 0)
-  const totalAmount = orders.reduce((sum, o) => sum + o.subtotal, 0)
+  // KPI計算（返品を除外）
+  const activeOrders = orders.filter(o => o.status !== '返品')
+  const totalCount = activeOrders.length
+  const totalQuantity = activeOrders.reduce((sum, o) => sum + o.quantity, 0)
+  const totalAmount = activeOrders.reduce((sum, o) => sum + o.subtotal, 0)
   
   return (
     <div className="space-y-6">

@@ -141,12 +141,9 @@ export type CartWinRate = {
 
 // Order Status
 export type OrderStatus =
-  | 'sup_依頼中'
-  | 'be_メーカー取寄中'
-  | 'be_納品手続完了'
-  | 'sup_受取完了'
-  | 'sup_fba出荷完了'
-  | '保留'
+  | '依頼中'
+  | '営業倉庫'
+  | 'FBA'
   | '返品'
 
 // Order
@@ -244,34 +241,25 @@ export type OrderFilters = {
 
 // Status Transitions (ステータス遷移定義)
 export const STATUS_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
-  'sup_依頼中': ['be_メーカー取寄中', '保留', '返品'],
-  'be_メーカー取寄中': ['be_納品手続完了', '保留', '返品'],
-  'be_納品手続完了': ['sup_受取完了', '保留', '返品'],
-  'sup_受取完了': ['sup_fba出荷完了', '保留', '返品'],
-  'sup_fba出荷完了': ['保留', '返品'],
-  '保留': ['保留', '返品'],
+  '依頼中': ['営業倉庫', 'FBA', '返品'],
+  '営業倉庫': ['FBA', '返品'],
+  'FBA': [],
   '返品': [],
 }
 
 // ステータス表示名
 export const STATUS_LABELS: Record<OrderStatus, string> = {
-  'sup_依頼中': 'Suprole依頼中',
-  'be_メーカー取寄中': 'befree取寄中',
-  'be_納品手続完了': 'befree納品完了',
-  'sup_受取完了': 'Suprole受取完了',
-  'sup_fba出荷完了': 'FBA出荷完了',
-  '保留': '保留',
+  '依頼中': '依頼中',
+  '営業倉庫': '営業倉庫',
+  'FBA': 'FBA',
   '返品': '返品',
 }
 
 // ステータスバッジの色
 export const STATUS_COLORS: Record<OrderStatus, string> = {
-  'sup_依頼中': 'bg-blue-100 text-blue-800',
-  'be_メーカー取寄中': 'bg-yellow-100 text-yellow-800',
-  'be_納品手続完了': 'bg-green-100 text-green-800',
-  'sup_受取完了': 'bg-purple-100 text-purple-800',
-  'sup_fba出荷完了': 'bg-indigo-100 text-indigo-800',
-  '保留': 'bg-gray-100 text-gray-800',
+  '依頼中': 'bg-blue-100 text-blue-800',
+  '営業倉庫': 'bg-green-100 text-green-800',
+  'FBA': 'bg-indigo-100 text-indigo-800',
   '返品': 'bg-red-100 text-red-800',
 }
 

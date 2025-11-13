@@ -43,12 +43,9 @@ interface OrdersTableProps {
 
 // すべてのステータス（遷移制限なし）
 const ALL_STATUSES: OrderStatus[] = [
-  'sup_依頼中',
-  'be_メーカー取寄中',
-  'be_納品手続完了',
-  'sup_受取完了',
-  'sup_fba出荷完了',
-  '保留',
+  '依頼中',
+  '営業倉庫',
+  'FBA',
   '返品',
 ]
 

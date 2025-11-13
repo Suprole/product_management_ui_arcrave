@@ -136,7 +136,7 @@ export function OrderConfirmStep({ product, orderData, onSuccess, onBack }: Orde
               </div>
               <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                 <Package className="h-4 w-4 text-green-600" />
-                <span>発注ステータス: Suprole依頼中</span>
+                <span>発注ステータス: 依頼中</span>
               </div>
             </div>
             
@@ -292,7 +292,7 @@ export function OrderConfirmStep({ product, orderData, onSuccess, onBack }: Orde
           
           <div className="border-t pt-6">
             <h4 className="font-semibold mb-3">初期ステータス</h4>
-            <Badge className="bg-blue-100 text-blue-800">Suprole依頼中</Badge>
+            <Badge className="bg-blue-100 text-blue-800">依頼中</Badge>
           </div>
           
           {error && (

@@ -254,7 +254,7 @@ function createOrder_(input) {
     taxRate,                           // 消費税率
     '',                                // 伝票No.
     null,                              // 到着予定日
-    'sup_依頼中',                      // ステータス
+    '依頼中',                          // ステータス
     input.remarks || '',               // 備考
     input.createdBy || '',             // created_by
     now,                               // created_at

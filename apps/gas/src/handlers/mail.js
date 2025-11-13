@@ -22,14 +22,14 @@ function sendRequestEmail_(payload) {
     throw new Error('MAIL_BEFREEが設定されていません（Script Propertiesを確認してください）');
   }
   
-  // 対象発注を取得（sup_依頼中のみ）
-  var orders = getOrders_({ statuses: ['sup_依頼中'] });
+  // 対象発注を取得（依頼中のみ）
+  var orders = getOrders_({ statuses: ['依頼中'] });
   var targetOrders = orders.filter(function(o) {
     return payload.poIds.indexOf(o.po_id) >= 0;
   });
   
   if (targetOrders.length === 0) {
-    throw new Error('送信対象の発注がありません（ステータス: sup_依頼中）');
+    throw new Error('送信対象の発注がありません（ステータス: 依頼中）');
   }
   
   // メール本文生成
@@ -131,14 +131,14 @@ function sendDeliveryEmail_(payload) {
     throw new Error('MAIL_SUPROLEが設定されていません（Script Propertiesを確認してください）');
   }
   
-  // 対象発注を取得（be_納品手続完了のみ）
-  var orders = getOrders_({ statuses: ['be_納品手続完了'] });
+  // 対象発注を取得（営業倉庫のみ）
+  var orders = getOrders_({ statuses: ['営業倉庫'] });
   var targetOrders = orders.filter(function(o) {
     return payload.poIds.indexOf(o.po_id) >= 0;
   });
   
   if (targetOrders.length === 0) {
-    throw new Error('送信対象の発注がありません（ステータス: be_納品手続完了）');
+    throw new Error('送信対象の発注がありません（ステータス: 営業倉庫）');
   }
   
   // メール本文生成

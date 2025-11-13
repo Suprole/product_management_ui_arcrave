@@ -50,7 +50,7 @@ export function OrderDetailsStep({ product, onComplete, onBack }: OrderDetailsSt
       try {
         const params = new URLSearchParams({
           sku: product.sku,
-          statuses: 'sup_依頼中',
+          statuses: '依頼中',
         })
         const res = await fetch(`/api/gas/orders?${params.toString()}`)
         
@@ -68,7 +68,7 @@ export function OrderDetailsStep({ product, onComplete, onBack }: OrderDetailsSt
         
         // 依頼中の発注のみをフィルタ
         const pendingOrders = (data.items || []).filter(
-          (order: Order) => order.status === 'sup_依頼中'
+          (order: Order) => order.status === '依頼中'
         )
         
         setExistingOrders(pendingOrders)

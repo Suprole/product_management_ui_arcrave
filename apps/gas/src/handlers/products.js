@@ -21,7 +21,20 @@ function handleProducts_(e) {
   var sales = readAll_('商品別日次売上集計')
     .filter(function(r){ var y = toYmd_(r['売上日']); return inRangeYmd_(y, p.from, p.to); });
 
-  var agg = {}; // SKU単位に集計
+  // ★重要: SKUの母集合を「商品状態」ベースで作る（期間売上が0でも一覧に出すため）
+  var state = [];
+  try { state = readAll_('商品状態'); } catch (e0) { state = []; }
+
+  // SKU単位に集計（母集合+期間内売上を加算）
+  var agg = {};
+
+  // 母集合（商品状態のSKU）をゼロ初期化
+  state.forEach(function(r){
+    var sku0 = String(r['SKU'] || '');
+    if (!sku0) return;
+    if (!agg[sku0]) agg[sku0] = { sku: sku0, units:0, revenue:0, orders:0, profit:0 };
+  });
+
   sales.forEach(function(r){
     var sku = String(r['SKU'] || '');
     if (!sku) return;
@@ -48,12 +61,12 @@ function handleProducts_(e) {
   var buybox = readAll_('商品別カート取得率集計');
   // 列: ASIN, 平均カート取得率（7日 or 30日 or 全期間）, 総セッション数（7日 or 30日）等
   // 重みには『総セッション数（30日）』を採用し、値は『平均カート取得率（30日）』を採用
-  var asinBySku = {};
-  rows.forEach(function(x){ asinBySku[x.sku] = x.asin; });
+  var skuByAsin = {};
+  rows.forEach(function(x){ if (x.asin) skuByAsin[String(x.asin)] = x.sku; });
   var acc = {};
   buybox.forEach(function(r){
     var asin = String(r['ASIN'] || '');
-    var sku = Object.keys(asinBySku).find(function(s){ return asinBySku[s]===asin; });
+    var sku = skuByAsin[asin];
     if (!sku) return;
     if (!acc[sku]) acc[sku] = { w:0, v:0 };
     var rate = num_(r['平均カート取得率（30日）']);

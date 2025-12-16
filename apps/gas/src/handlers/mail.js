@@ -39,13 +39,18 @@ function sendRequestEmail_(payload) {
   
   // 送信
   try {
+    // 添付ファイル（CSV / PDF）
+    var csvBlob = buildOrdersCsvBlob_(targetOrders, 'request', '発注依頼_' + today + '.csv');
+    var pdfBlob = buildPdfFromHtml_(htmlBody, '発注依頼_' + today + '.pdf');
+    
     MailApp.sendEmail({
       to: CONFIG.MAIL.BEFREE,
       subject: subject,
-      htmlBody: htmlBody
+      htmlBody: htmlBody,
+      attachments: [csvBlob, pdfBlob]
     });
     
-    Logger.log('依頼メール送信成功: ' + targetOrders.length + '件 → ' + CONFIG.MAIL.BEFREE);
+    Logger.log('依頼メール送信成功: ' + targetOrders.length + '件 → ' + CONFIG.MAIL.BEFREE + '（添付: CSV/PDF）');
     
   } catch (mailErr) {
     Logger.log('メール送信エラー: ' + mailErr.toString());
@@ -148,13 +153,18 @@ function sendDeliveryEmail_(payload) {
   
   // 送信
   try {
+    // 添付ファイル（CSV / PDF）
+    var csvBlob = buildOrdersCsvBlob_(targetOrders, 'delivery', '納品手続完了_' + today + '.csv');
+    var pdfBlob = buildPdfFromHtml_(htmlBody, '納品手続完了_' + today + '.pdf');
+    
     MailApp.sendEmail({
       to: CONFIG.MAIL.SUPROLE,
       subject: subject,
-      htmlBody: htmlBody
+      htmlBody: htmlBody,
+      attachments: [csvBlob, pdfBlob]
     });
     
-    Logger.log('納品完了メール送信成功: ' + targetOrders.length + '件 → ' + CONFIG.MAIL.SUPROLE);
+    Logger.log('納品完了メール送信成功: ' + targetOrders.length + '件 → ' + CONFIG.MAIL.SUPROLE + '（添付: CSV/PDF）');
     
   } catch (mailErr) {
     Logger.log('メール送信エラー: ' + mailErr.toString());
@@ -246,6 +256,85 @@ function buildDeliveryEmailHtml_(orders) {
 function formatNumber_(num) {
   if (typeof num !== 'number') return '0';
   return num.toLocaleString('ja-JP');
+}
+
+/**
+ * HTMLからPDFのBlobを生成
+ * @param {string} html
+ * @param {string} filename
+ * @return {Blob}
+ */
+function buildPdfFromHtml_(html, filename) {
+  var output = HtmlService.createHtmlOutput(html);
+  var blob = output.getAs('application/pdf').setName(filename);
+  return blob;
+}
+
+/**
+ * 受注データからCSVのBlobを生成
+ * @param {Array<Object>} orders
+ * @param {'request'|'delivery'} type
+ * @param {string} filename
+ * @return {Blob}
+ */
+function buildOrdersCsvBlob_(orders, type, filename) {
+  var headers, rows;
+  
+  if (type === 'request') {
+    headers = ['発注ID', 'ASIN', '商品コード', '商品名', '数量', '単価', '合計額', '発注日'];
+    rows = orders.map(function(o) {
+      return [
+        o.po_id,
+        o.asin,
+        o.productCode,
+        o.productName,
+        o.quantity,
+        o.unitPrice,
+        o.subtotal,
+        o.orderDate
+      ];
+    });
+  } else {
+    headers = ['発注ID', 'ASIN', '商品コード', '商品名', '数量', '単価', '合計額', '消費税率', '伝票No.', '到着予定日'];
+    rows = orders.map(function(o) {
+      var taxRatePct = (typeof o.taxRate === 'number') ? Math.round(o.taxRate * 100) + '%' : '';
+      return [
+        o.po_id,
+        o.asin,
+        o.productCode,
+        o.productName,
+        o.quantity,
+        o.unitPrice,
+        o.subtotal,
+        taxRatePct,
+        (o.invoiceNo || ''),
+        (o.arrivalDate || '')
+      ];
+    });
+  }
+  
+  var csv = '';
+  csv += headers.map(csvEscape_).join(',') + '\n';
+  rows.forEach(function(row) {
+    csv += row.map(csvEscape_).join(',') + '\n';
+  });
+  
+  // Excel向けにBOMを付与（UTF-8）
+  var csvWithBom = '\uFEFF' + csv;
+  return Utilities.newBlob(csvWithBom, 'text/csv', filename);
+}
+
+/**
+ * CSVセル用のエスケープ
+ * @param {any} value
+ * @return {string}
+ */
+function csvEscape_(value) {
+  var s = (value === null || value === undefined) ? '' : String(value);
+  if (/[",\n]/.test(s)) {
+    s = '"' + s.replace(/"/g, '""') + '"';
+  }
+  return s;
 }
 
 // ============================================================

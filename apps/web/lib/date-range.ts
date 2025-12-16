@@ -11,17 +11,17 @@ function pad2(n: number) {
   return String(n).padStart(2, '0')
 }
 
+/**
+ * 実行環境依存を避けるため、Intl(timeZone)を使わず JST(UTC+9) の日付パーツを計算する。
+ * - ブラウザ/Node/Vercel で一貫して動く
+ */
 function toTokyoYmdParts(date = new Date()): { year: number; month: number; day: number } {
-  const fmt = new Intl.DateTimeFormat('ja-JP', {
-    timeZone: 'Asia/Tokyo',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  })
-  const parts = fmt.formatToParts(date)
-  const year = Number(parts.find((p) => p.type === 'year')?.value)
-  const month = Number(parts.find((p) => p.type === 'month')?.value)
-  const day = Number(parts.find((p) => p.type === 'day')?.value)
+  // date を JST(=UTC+9) に寄せた「UTCパーツ」を読む
+  const JST_OFFSET_MS = 9 * 60 * 60 * 1000
+  const jst = new Date(date.getTime() + JST_OFFSET_MS)
+  const year = jst.getUTCFullYear()
+  const month = jst.getUTCMonth() + 1
+  const day = jst.getUTCDate()
   return { year, month, day }
 }
 

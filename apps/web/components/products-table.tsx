@@ -10,41 +10,76 @@ import { Search, ArrowUpDown, Loader2, ShoppingCart } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 // import from API instead of mock data
 import Link from "next/link"
+import { getCurrentMonthToDateTokyo, getPreviousMonthTokyo } from "@/lib/date-range"
 
 type UIProduct = {
   sku: string
   productName: string
-  orderCount: number
   currentStock: number
-  totalSales: number
-  totalProfit: number
-  profitRate: number
+  ordersPrev: number
+  ordersCur: number
+  revenuePrev: number
+  revenueCur: number
+  totalProfitCur: number
+  profitRateCur: number
 }
 
 export function ProductsTable() {
   const [products, setProducts] = useState<UIProduct[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
-  const [sortField, setSortField] = useState<string>("totalProfit")
+  const [sortField, setSortField] = useState<string>("totalProfitCur")
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc")
 
   useEffect(() => {
     const run = async () => {
       try {
         setIsLoading(true)
-        // 全期間のデータを取得するため、from=2000-01-01 を指定
-        const res = await fetch(`/api/gas/products?from=2000-01-01`, { cache: 'no-store' })
-        const data = await res.json()
-        const items = Array.isArray(data?.items) ? data.items : []
-        const mapped: UIProduct[] = items.map((it: any) => ({
-          sku: it.sku,
-          productName: it.name || it.productName || '',
-          orderCount: it.orders ?? it.orderCount ?? 0,
-          currentStock: it.stock ?? it.currentStock ?? 0,
-          totalSales: Math.round(it.revenue ?? it.totalSales ?? 0),
-          totalProfit: Math.round(it.profit ?? it.totalProfit ?? 0),
-          profitRate: typeof it.profitRate === 'number' ? it.profitRate : ((it.revenue ? ((it.profit ?? 0) / (it.revenue || 1)) * 100 : 0)),
-        }))
+        const cur = getCurrentMonthToDateTokyo()
+        const prev = getPreviousMonthTokyo()
+
+        const [resPrev, resCur] = await Promise.all([
+          fetch(`/api/gas/products?from=${prev.from}&to=${prev.to}`, { cache: 'no-store' }),
+          fetch(`/api/gas/products?from=${cur.from}&to=${cur.to}`, { cache: 'no-store' }),
+        ])
+        const [dataPrev, dataCur] = await Promise.all([resPrev.json(), resCur.json()])
+
+        const prevItems: any[] = Array.isArray(dataPrev?.items) ? dataPrev.items : []
+        const curItems: any[] = Array.isArray(dataCur?.items) ? dataCur.items : []
+
+        const normalize = (it: any) => ({
+          sku: String(it.sku || ''),
+          name: String(it.name || it.productName || ''),
+          orders: Number(it.orders ?? it.orderCount ?? 0),
+          revenue: Number(it.revenue ?? it.totalSales ?? 0),
+          profit: Number(it.profit ?? it.totalProfit ?? 0),
+          profitRate:
+            typeof it.profitRate === 'number'
+              ? it.profitRate
+              : (Number(it.revenue ?? 0) ? (Number(it.profit ?? 0) / (Number(it.revenue) || 1)) * 100 : 0),
+          stock: Number(it.stock ?? it.currentStock ?? 0),
+        })
+
+        const prevMap = new Map(prevItems.map((it) => [String(it.sku || ''), normalize(it)]))
+        const curMap = new Map(curItems.map((it) => [String(it.sku || ''), normalize(it)]))
+        const skus = Array.from(new Set([...prevMap.keys(), ...curMap.keys()])).filter(Boolean)
+
+        const mapped: UIProduct[] = skus.map((sku) => {
+          const p = prevMap.get(sku)
+          const c = curMap.get(sku)
+          return {
+            sku,
+            productName: c?.name || p?.name || '',
+            currentStock: c?.stock ?? p?.stock ?? 0,
+            ordersPrev: p?.orders ?? 0,
+            ordersCur: c?.orders ?? 0,
+            revenuePrev: Math.round(p?.revenue ?? 0),
+            revenueCur: Math.round(c?.revenue ?? 0),
+            totalProfitCur: Math.round(c?.profit ?? 0),
+            profitRateCur: typeof c?.profitRate === 'number' ? c!.profitRate : 0,
+          }
+        })
+
         setProducts(mapped)
       } catch (error) {
         console.error('商品データの取得に失敗しました:', error)
@@ -99,10 +134,12 @@ export function ProductsTable() {
                   <TableHead className="text-muted-foreground">SKU</TableHead>
                   <TableHead className="text-muted-foreground">商品名</TableHead>
                   <TableHead className="text-muted-foreground text-right">在庫</TableHead>
-                  <TableHead className="text-muted-foreground text-right">売上</TableHead>
-                  <TableHead className="text-muted-foreground text-right">利益</TableHead>
-                  <TableHead className="text-muted-foreground text-right">利益率</TableHead>
-                  <TableHead className="text-muted-foreground text-right">注文数</TableHead>
+                  <TableHead className="text-muted-foreground text-right">注文件数（前月）</TableHead>
+                  <TableHead className="text-muted-foreground text-right">注文件数（今月）</TableHead>
+                  <TableHead className="text-muted-foreground text-right">売上（前月）</TableHead>
+                  <TableHead className="text-muted-foreground text-right">売上（今月）</TableHead>
+                  <TableHead className="text-muted-foreground text-right">利益（今月）</TableHead>
+                  <TableHead className="text-muted-foreground text-right">利益率（今月）</TableHead>
                   <TableHead className="text-muted-foreground">状態</TableHead>
                   <TableHead className="text-muted-foreground">アクション</TableHead>
                 </TableRow>
@@ -117,6 +154,8 @@ export function ProductsTable() {
                     <TableCell><Skeleton className="h-5 w-24 ml-auto" /></TableCell>
                     <TableCell><Skeleton className="h-5 w-16 ml-auto" /></TableCell>
                     <TableCell><Skeleton className="h-5 w-12 ml-auto" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-20 ml-auto" /></TableCell>
+                    <TableCell><Skeleton className="h-5 w-20 ml-auto" /></TableCell>
                     <TableCell><Skeleton className="h-6 w-16" /></TableCell>
                     <TableCell><Skeleton className="h-8 w-20" /></TableCell>
                   </TableRow>
@@ -168,40 +207,60 @@ export function ProductsTable() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => handleSort("totalSales")}
+                    onClick={() => handleSort("ordersPrev")}
                     className="hover:bg-transparent"
                   >
-                    売上 <ArrowUpDown className="ml-1 h-3 w-3" />
+                    注文件数（前月） <ArrowUpDown className="ml-1 h-3 w-3" />
                   </Button>
                 </TableHead>
                 <TableHead className="text-muted-foreground text-right">
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => handleSort("totalProfit")}
+                    onClick={() => handleSort("ordersCur")}
                     className="hover:bg-transparent"
                   >
-                    利益 <ArrowUpDown className="ml-1 h-3 w-3" />
+                    注文件数（今月） <ArrowUpDown className="ml-1 h-3 w-3" />
                   </Button>
                 </TableHead>
                 <TableHead className="text-muted-foreground text-right">
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => handleSort("profitRate")}
+                    onClick={() => handleSort("revenuePrev")}
                     className="hover:bg-transparent"
                   >
-                    利益率 <ArrowUpDown className="ml-1 h-3 w-3" />
+                    売上（前月） <ArrowUpDown className="ml-1 h-3 w-3" />
                   </Button>
                 </TableHead>
                 <TableHead className="text-muted-foreground text-right">
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => handleSort("orderCount")}
+                    onClick={() => handleSort("revenueCur")}
                     className="hover:bg-transparent"
                   >
-                    注文数 <ArrowUpDown className="ml-1 h-3 w-3" />
+                    売上（今月） <ArrowUpDown className="ml-1 h-3 w-3" />
+                  </Button>
+                </TableHead>
+                <TableHead className="text-muted-foreground text-right">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleSort("totalProfitCur")}
+                    className="hover:bg-transparent"
+                  >
+                    利益（今月） <ArrowUpDown className="ml-1 h-3 w-3" />
+                  </Button>
+                </TableHead>
+                <TableHead className="text-muted-foreground text-right">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleSort("profitRateCur")}
+                    className="hover:bg-transparent"
+                  >
+                    利益率（今月） <ArrowUpDown className="ml-1 h-3 w-3" />
                   </Button>
                 </TableHead>
                 <TableHead className="text-muted-foreground">状態</TableHead>
@@ -234,22 +293,24 @@ export function ProductsTable() {
                       {product.currentStock}
                     </span>
                   </TableCell>
-                  <TableCell className="text-right">¥{product.totalSales.toLocaleString()}</TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right">{product.ordersPrev}</TableCell>
+                  <TableCell className="text-right font-semibold">{product.ordersCur}</TableCell>
+                  <TableCell className="text-right">¥{product.revenuePrev.toLocaleString()}</TableCell>
+                  <TableCell className="text-right font-semibold">¥{product.revenueCur.toLocaleString()}</TableCell>
+                  <TableCell className="text-right font-semibold">
                     <span
                       className={
-                        product.totalProfit >= 0 ? "text-green-500 font-semibold" : "text-red-500 font-semibold"
+                        product.totalProfitCur >= 0 ? "text-green-500" : "text-red-500"
                       }
                     >
-                      ¥{product.totalProfit.toLocaleString()}
+                      ¥{product.totalProfitCur.toLocaleString()}
                     </span>
                   </TableCell>
                   <TableCell className="text-right">
-                    <span className={product.profitRate >= 0 ? "text-green-500" : "text-red-500"}>
-                      {product.profitRate.toFixed(1)}%
+                    <span className={product.profitRateCur >= 0 ? "text-green-500" : "text-red-500"}>
+                      {product.profitRateCur.toFixed(1)}%
                     </span>
                   </TableCell>
-                  <TableCell className="text-right">{product.orderCount}</TableCell>
                   <TableCell>
                     {product.currentStock === 0 && (
                       <Badge variant="destructive" className="text-xs">

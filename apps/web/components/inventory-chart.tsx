@@ -4,13 +4,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts"
 import { useEffect, useState } from "react"
 import { DashboardResponse } from "@/lib/types"
+import { getCurrentMonthToDateTokyo } from "@/lib/date-range"
 
 export function InventoryChart() {
   const [data, setData] = useState<{ date: string; stock: number; orders90d: number }[]>([])
 
   useEffect(() => {
     const run = async () => {
-      const res = await fetch(`/api/gas/dashboard`, { cache: 'no-store' })
+      const cur = getCurrentMonthToDateTokyo()
+      const res = await fetch(`/api/gas/dashboard?from=${cur.from}&to=${cur.to}`, { cache: 'no-store' })
       const json = (await res.json()) as DashboardResponse
       if ('kpi' in json && json.series?.stock) {
         const stockMap = new Map(json.series.stock.map((p) => [p.date, p.value]))

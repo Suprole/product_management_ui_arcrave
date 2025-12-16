@@ -1,6 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { AlertTriangle, TrendingDown, Package } from "lucide-react"
 import { headers } from "next/headers"
+import { getCurrentMonthToDateTokyo } from "@/lib/date-range"
 
 export async function AlertsPanel() {
   const h = await headers()
@@ -8,8 +9,9 @@ export async function AlertsPanel() {
   const proto = h.get('x-forwarded-proto') || (process.env.VERCEL ? 'https' : 'http')
   const base = `${proto}://${host}`
   // products から集計: 推奨発注数>0, 在庫=0, 利益<0
-  // 全期間のデータを取得
-  const res = await fetch(`${base}/api/gas/products?from=2000-01-01`, { cache: 'no-store' })
+  // 今月（東京時間: 月初〜今日）のデータを取得
+  const cur = getCurrentMonthToDateTokyo()
+  const res = await fetch(`${base}/api/gas/products?from=${cur.from}&to=${cur.to}`, { cache: 'no-store' })
   const data = await res.json()
   const items: any[] = Array.isArray(data?.items) ? data.items : []
   const lowStockCount = items.filter((it) => (it.recommendedOrderQty ?? 0) > 0).length

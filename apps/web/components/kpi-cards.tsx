@@ -2,6 +2,7 @@ import { TrendingUp, TrendingDown, DollarSign, Package, ShoppingCart, Percent } 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { DashboardResponse } from "@/lib/types"
 import { headers } from "next/headers"
+import { getCurrentMonthToDateTokyo } from "@/lib/date-range"
 
 function formatJPY(n: number) {
   return `¥${Math.round(n).toLocaleString()}`
@@ -14,7 +15,8 @@ export async function KPICards() {
   const base = `${proto}://${host}`
   
   try {
-    const res = await fetch(`${base}/api/gas/dashboard`, { cache: 'no-store' })
+    const cur = getCurrentMonthToDateTokyo()
+    const res = await fetch(`${base}/api/gas/dashboard?from=${cur.from}&to=${cur.to}`, { cache: 'no-store' })
     
     if (!res.ok) {
       console.error('❌ Dashboard API failed:', res.status, res.statusText)

@@ -14,8 +14,18 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
-import { Loader2, Save } from 'lucide-react'
+import { Loader2, Save, Trash2 } from 'lucide-react'
 import type { Order } from '@/lib/types'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 interface OrderEditDialogProps {
   order: Order
@@ -29,6 +39,8 @@ export function OrderEditDialog({ order, onClose, onSuccess }: OrderEditDialogPr
   const [arrivalDate, setArrivalDate] = useState(order.arrivalDate || '')
   const [remarks, setRemarks] = useState(order.remarks || '')
   const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
   const { toast } = useToast()
   
   const handleSave = async () => {
@@ -78,6 +90,42 @@ export function OrderEditDialog({ order, onClose, onSuccess }: OrderEditDialogPr
       })
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    setDeleting(true)
+    try {
+      const res = await fetch(`/api/gas/orders/${order.po_id}`, {
+        method: 'DELETE',
+        headers: { 'Accept': 'application/json' },
+      })
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error((data && (data.error || data.message)) || '削除に失敗しました')
+      }
+
+      toast({
+        title: '✅ 削除完了',
+        description: `発注ID: ${order.po_id} を削除しました`,
+        duration: 3000,
+      })
+
+      // 削除後はモーダルを閉じて一覧更新
+      setConfirmDeleteOpen(false)
+      setTimeout(() => {
+        onSuccess()
+      }, 300)
+    } catch (err) {
+      toast({
+        title: '❌ エラー',
+        description: err instanceof Error ? err.message : '削除に失敗しました',
+        variant: 'destructive',
+        duration: 5000,
+      })
+    } finally {
+      setDeleting(false)
     }
   }
   
@@ -148,10 +196,18 @@ export function OrderEditDialog({ order, onClose, onSuccess }: OrderEditDialogPr
         </div>
         
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={saving}>
+          <Button
+            variant="destructive"
+            onClick={() => setConfirmDeleteOpen(true)}
+            disabled={saving || deleting}
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            削除
+          </Button>
+          <Button variant="outline" onClick={onClose} disabled={saving || deleting}>
             キャンセル
           </Button>
-          <Button onClick={handleSave} disabled={saving}>
+          <Button onClick={handleSave} disabled={saving || deleting}>
             {saving ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -166,6 +222,33 @@ export function OrderEditDialog({ order, onClose, onSuccess }: OrderEditDialogPr
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      {/* 削除確認ダイアログ */}
+      <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>発注を削除しますか？</AlertDialogTitle>
+            <AlertDialogDescription>
+              発注ID <span className="font-mono">{order.po_id}</span> を削除します。
+              <br />
+              この操作は取り消せません。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>キャンセル</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} disabled={deleting}>
+              {deleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  削除中...
+                </>
+              ) : (
+                '削除する'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   )
 }

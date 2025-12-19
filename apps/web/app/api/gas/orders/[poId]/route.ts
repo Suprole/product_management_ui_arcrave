@@ -123,3 +123,53 @@ export async function PATCH(
   return PUT(req, { params });
 }
 
+/**
+ * 発注削除
+ * DELETE /api/gas/orders/:poId
+ */
+export async function DELETE(
+  req: NextRequest,
+  { params }: { params: Promise<{ poId: string }> }
+) {
+  const base = process.env.GAS_API_BASE!;
+  const key = process.env.GAS_API_KEY!;
+
+  if (!base || !key) {
+    return NextResponse.json(
+      { error: 'GAS API configuration is missing' },
+      { status: 500 }
+    );
+  }
+
+  const { poId } = await params;
+
+  const url = new URL(base);
+  url.searchParams.set('action', 'deleteOrder');
+  url.searchParams.set('key', key);
+
+  try {
+    const res = await fetch(url.toString(), {
+      method: 'POST', // GASではPOSTとして処理
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({ po_id: poId }),
+    });
+
+    const data = await res.json();
+
+    if (data._status && data._status >= 400) {
+      return NextResponse.json(data, { status: data._status });
+    }
+
+    return NextResponse.json(data);
+  } catch (error) {
+    console.error('Failed to delete order:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete order', details: String(error) },
+      { status: 500 }
+    );
+  }
+}
+

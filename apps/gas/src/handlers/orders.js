@@ -363,6 +363,51 @@ function handleUpdateOrder_(payload) {
 }
 
 // ============================================================
+// 発注削除
+// ============================================================
+
+/**
+ * 発注削除（po_id指定で行削除）
+ * @param {Object} payload
+ * @return {Object}
+ */
+function deleteOrder_(payload) {
+  if (!payload || !payload.po_id) throw new Error('po_idは必須です');
+
+  var sheet = openOrdersSheet_();
+  var data = sheet.getDataRange().getValues();
+
+  if (!data || data.length === 0) {
+    throw new Error('発注管理シートが空です');
+  }
+
+  var headers = data[0];
+  var poIdColIndex = headers.indexOf('po_id');
+  if (poIdColIndex === -1) {
+    throw new Error('po_id列が見つかりません');
+  }
+
+  // 対象行を検索して削除
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][poIdColIndex]) === String(payload.po_id)) {
+      var rowIndex = i + 1; // 1-indexed
+      sheet.deleteRow(rowIndex);
+      Logger.log('発注削除成功: ' + payload.po_id);
+      return { success: true };
+    }
+  }
+
+  throw new Error('発注が見つかりません: ' + payload.po_id);
+}
+
+/**
+ * POSTハンドラ（発注削除）
+ */
+function handleDeleteOrder_(payload) {
+  return json_(deleteOrder_(payload));
+}
+
+// ============================================================
 // ステータス変更
 // ============================================================
 

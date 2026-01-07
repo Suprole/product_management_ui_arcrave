@@ -148,20 +148,12 @@ export function OrderDetailsStep({ product, onComplete, onBack }: OrderDetailsSt
               <p>{product.brand || '-'}</p>
             </div>
             <div>
-              <span className="text-muted-foreground">セット個数:</span>
-              <p>{product.setSize}個/セット</p>
-            </div>
-            <div>
               <span className="text-muted-foreground">最小ロット:</span>
               <p>{product.minLot}セット</p>
             </div>
             <div>
               <span className="text-muted-foreground">仕入れ値（/セット）:</span>
               <p className="font-medium">¥{product.purchasePrice.toLocaleString()}</p>
-            </div>
-            <div>
-              <span className="text-muted-foreground">単価（/個）:</span>
-              <p className="font-medium">¥{product.unitPrice.toLocaleString()}</p>
             </div>
           </div>
         </CardContent>
@@ -275,10 +267,6 @@ export function OrderDetailsStep({ product, onComplete, onBack }: OrderDetailsSt
               <div className="flex justify-between">
                 <span className="text-muted-foreground">発注数量:</span>
                 <span className="font-medium">{quantity}個</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">単価:</span>
-                <span>¥{product.unitPrice.toLocaleString()}</span>
               </div>
               <div className="flex justify-between col-span-2">
                 <span className="text-muted-foreground">税抜金額:</span>

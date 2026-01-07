@@ -205,10 +205,6 @@ export function OrderConfirmStep({ product, orderData, onSuccess, onBack }: Orde
             <h4 className="font-semibold mb-3">発注数量</h4>
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div>
-                <span className="text-muted-foreground">セット個数:</span>
-                <p>{product.setSize}個/セット</p>
-              </div>
-              <div>
                 <span className="text-muted-foreground">発注セット数:</span>
                 <p className="font-medium">{orderData.setCount}セット</p>
               </div>
@@ -222,10 +218,6 @@ export function OrderConfirmStep({ product, orderData, onSuccess, onBack }: Orde
           <div className="border-t pt-6">
             <h4 className="font-semibold mb-3">金額</h4>
             <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">単価（税抜/個）:</span>
-                <span>¥{product.unitPrice.toLocaleString()}</span>
-              </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">税抜純売上高:</span>
                 <span className="font-medium">¥{subtotal.toLocaleString()}</span>

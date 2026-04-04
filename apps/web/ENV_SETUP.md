@@ -12,6 +12,34 @@ GAS_API_BASE=https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec
 
 # GASのScript Propertiesで設定したAPP_TOKEN
 GAS_API_KEY=your-super-secret-gas-api-key
+
+# 読取系のデータソース
+# gas: すべてGAS直読
+# hybrid: GCS JSONがあれば優先、なければGASへフォールバック
+# gcs-json: 読取系はGCS JSONのみ
+READ_API_SOURCE=hybrid
+```
+
+### 1-2. GCS JSON設定（任意）
+
+```env
+# Next.js から読みに行くJSONのベースURL
+# 例: https://storage.googleapis.com/your-bucket
+# 例: https://cdn.example.com
+GCS_JSON_BASE_URL=https://storage.googleapis.com/your-bucket
+
+# オブジェクトのprefix
+GCS_JSON_PREFIX=read-models/v1
+
+# exportスクリプトのアップロード先バケット
+GCS_JSON_BUCKET=your-bucket
+
+# GCPプロジェクトID（ADCが使える環境なら省略可）
+GCS_PROJECT_ID=your-gcp-project-id
+
+# 必要に応じてサービスアカウントJSONを文字列で渡す
+# ローカル検証では GCS_JSON_LOCAL_DIR=/tmp/read-models でも可
+GCS_SERVICE_ACCOUNT_JSON='{\"type\":\"service_account\"}'
 ```
 
 ### 2. Google OAuth設定
@@ -73,6 +101,9 @@ pnpm dev
 ```bash
 vercel env add GAS_API_BASE
 vercel env add GAS_API_KEY
+vercel env add READ_API_SOURCE
+vercel env add GCS_JSON_BASE_URL
+vercel env add GCS_JSON_PREFIX
 vercel env add GOOGLE_CLIENT_ID
 vercel env add GOOGLE_CLIENT_SECRET
 vercel env add NEXTAUTH_SECRET
@@ -115,4 +146,11 @@ vercel env add REVALIDATE_SECRET
 1. `GAS_API_BASE` のURLが正しいか確認（`/exec` で終わっているか）
 2. `GAS_API_KEY` がGASのScript Propertiesと一致しているか確認
 3. GASのWeb Appが正しくデプロイされているか確認
+
+### GCS JSONを使う場合
+
+1. `READ_API_SOURCE=hybrid` から始める
+2. `GCS_JSON_BASE_URL` がブラウザから到達可能なURLか確認
+3. `pnpm -C apps/web export:read-models` でJSONを書き出す
+4. Cloud Run / Cloud Functions / Cloud Scheduler で定期実行する
 

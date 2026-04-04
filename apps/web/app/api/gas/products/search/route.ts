@@ -1,4 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server'
+import type { MasterViewResponse } from '@/lib/types'
+import { getResponseStatus } from '@/lib/server/gas'
+import { buildProductSearchResponse, readMastersModel } from '@/lib/server/read-models'
 
 /**
  * 商品検索（発注作成用）
@@ -13,53 +16,30 @@ import { NextRequest, NextResponse } from 'next/server';
  * - limit: 最大件数
  */
 export async function GET(req: NextRequest) {
-  const base = process.env.GAS_API_BASE!;
-  const key = process.env.GAS_API_KEY!;
-
-  if (!base || !key) {
-    return NextResponse.json(
-      { error: 'GAS API configuration is missing' },
-      { status: 500 }
-    );
-  }
-
-  const searchParams = req.nextUrl.searchParams;
-  
-  const url = new URL(base);
-  url.searchParams.set('path', 'searchproducts');
-  url.searchParams.set('key', key);
-  
-  // 検索パラメータを転送
-  const queryParams = ['q', 'sku', 'asin', 'productCode', 'brand', 'limit'];
-  
-  queryParams.forEach(param => {
-    const value = searchParams.get(param);
-    if (value) {
-      url.searchParams.set(param, value);
-    }
-  });
-
   try {
-    const res = await fetch(url.toString(), {
-      cache: 'no-store',
-      headers: {
-        'Accept': 'application/json',
-      },
-    });
-    
-    const data = await res.json();
-    
-    if (data._status && data._status >= 400) {
-      return NextResponse.json(data, { status: data._status });
+    const searchParams = req.nextUrl.searchParams
+    const { data } = await readMastersModel<MasterViewResponse>()
+
+    if ('items' in data) {
+      return NextResponse.json(
+        buildProductSearchResponse(data.items, {
+          q: searchParams.get('q'),
+          sku: searchParams.get('sku'),
+          asin: searchParams.get('asin'),
+          productCode: searchParams.get('productCode'),
+          brand: searchParams.get('brand'),
+          limit: searchParams.get('limit') ? Number(searchParams.get('limit')) : null,
+        }),
+      )
     }
-    
-    return NextResponse.json(data);
+
+    return NextResponse.json(data, { status: getResponseStatus(data) })
   } catch (error) {
-    console.error('Failed to search products:', error);
+    console.error('Failed to search products:', error)
     return NextResponse.json(
       { error: 'Failed to search products', details: String(error) },
-      { status: 500 }
-    );
+      { status: 500 },
+    )
   }
 }
 

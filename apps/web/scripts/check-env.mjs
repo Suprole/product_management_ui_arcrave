@@ -18,7 +18,15 @@ const REQUIRED_ENV_VARS = [
 ]
 
 const OPTIONAL_ENV_VARS = [
-  'NEXTAUTH_URL'
+  'NEXTAUTH_URL',
+  'READ_API_SOURCE',
+  'GCS_JSON_BASE_URL',
+  'GCS_JSON_PREFIX',
+  'GCS_JSON_BUCKET',
+  'GCS_PROJECT_ID',
+  'GCS_SERVICE_ACCOUNT_JSON',
+  'GCS_JSON_LOCAL_DIR',
+  'GCS_PRODUCT_EXPORT_LIMIT',
 ]
 
 console.log('🔍 環境変数チェック\n')
@@ -95,6 +103,34 @@ if (gasApiKey) {
     console.log(`  ⚠️  GAS_API_KEY: 短すぎる可能性があります (${gasApiKey.length}文字, 推奨: 20文字以上)`)
     hasWarnings = true
   }
+}
+
+// READ_API_SOURCE の値チェック
+const readApiSource = (process.env.READ_API_SOURCE || 'gas').toLowerCase()
+if (['gas', 'hybrid', 'gcs-json'].includes(readApiSource)) {
+  console.log(`  ✅ READ_API_SOURCE: ${readApiSource}`)
+} else {
+  console.log(`  ⚠️  READ_API_SOURCE: 不明な値です (${readApiSource})`)
+  hasWarnings = true
+}
+
+// GCS_JSON_BASE_URL の形式チェック
+const gcsJsonBaseUrl = process.env.GCS_JSON_BASE_URL
+if (gcsJsonBaseUrl) {
+  if (gcsJsonBaseUrl.startsWith('https://')) {
+    console.log('  ✅ GCS_JSON_BASE_URL: HTTPSを使用')
+  } else {
+    console.log('  ⚠️  GCS_JSON_BASE_URL: HTTPSではありません')
+    hasWarnings = true
+  }
+}
+
+// GCS export 周りの相互依存チェック
+const gcsBucket = process.env.GCS_JSON_BUCKET
+const gcsLocalDir = process.env.GCS_JSON_LOCAL_DIR
+if ((gcsBucket || gcsLocalDir) && !gcsJsonBaseUrl) {
+  console.log('  ⚠️  GCS_JSON_BASE_URL: 読取側のURLが未設定です（exportのみは可能）')
+  hasWarnings = true
 }
 
 // ALLOWED_EMAILS の形式チェック

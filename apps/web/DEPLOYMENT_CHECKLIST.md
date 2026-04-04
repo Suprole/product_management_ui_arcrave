@@ -69,6 +69,14 @@ Vercelダッシュボードで「Settings」→「Environment Variables」を開
 | `ALLOWED_EMAILS` | `user@example.com,user2@example.com` | Production, Preview, Development |
 | `REVALIDATE_SECRET` | ランダムな文字列 | Production, Preview, Development |
 
+#### GCS JSON 移行時に追加する環境変数
+
+| 変数名 | 値 | 環境 |
+|--------|-----|------|
+| `READ_API_SOURCE` | `hybrid` | Production, Preview, Development |
+| `GCS_JSON_BASE_URL` | `https://storage.googleapis.com/<bucket-name>` | Production, Preview, Development |
+| `GCS_JSON_PREFIX` | `read-models/v1` | Production, Preview, Development |
+
 #### 環境変数の生成コマンド
 
 ```bash
@@ -124,6 +132,12 @@ https://your-app.vercel.app
 - [ ] 商品一覧が表示される
 - [ ] 商品詳細が表示される
 - [ ] ブラウザのコンソールにエラーがない
+
+### 5. GCS JSON 連携の確認
+
+- [ ] `manifest.json` が GCS 上で取得できる
+- [ ] `READ_API_SOURCE=hybrid` が設定されている
+- [ ] Preview または本番 URL に対して `BASE_URL=https://... pnpm -C apps/web smoke:read-apis` が成功する
 
 ## 🔧 トラブルシューティング
 
@@ -208,6 +222,7 @@ vercel --prod
 2. **ドメインの設定**: カスタムドメインを設定（任意）
 3. **チーム追加**: `ALLOWED_EMAILS`に必要なメンバーを追加
 4. **データ確認**: 実際のスプレッドシートデータが正しく表示されるか確認
+5. **GCS JSON化**: `CLOUD_RUN_JOB_SETUP.md` と `GCS_DELIVERY_SETUP.md` に沿って定期出力を有効化
 
 ---
 

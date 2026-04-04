@@ -7,9 +7,12 @@
     "dev": "next dev",
     "lint": "eslint .",
     "start": "next start",
-    "check-env": "node scripts/check-env.mjs"
+    "check-env": "node scripts/check-env.mjs",
+    "export:read-models": "node scripts/export-gcs-read-models.mjs",
+    "smoke:read-apis": "node scripts/smoke-read-apis.mjs"
   },
   "dependencies": {
+    "@google-cloud/storage": "^7.19.0",
     "@hookform/resolvers": "^3.10.0",
     "@radix-ui/react-accordion": "1.2.2",
     "@radix-ui/react-alert-dialog": "1.1.4",

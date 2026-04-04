@@ -349,31 +349,25 @@ export function OrdersCartView() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="min-w-[240px]">商品</TableHead>
-                  <TableHead>ロット情報</TableHead>
+                  <TableHead className="min-w-[280px]">商品</TableHead>
                   <TableHead className="min-w-[110px]">セット数</TableHead>
                   <TableHead className="min-w-[110px]">税率</TableHead>
                   <TableHead className="text-right">合計個数</TableHead>
                   <TableHead className="text-right">単価</TableHead>
                   <TableHead className="text-right">税抜</TableHead>
-                  <TableHead className="text-right">税込</TableHead>
                   <TableHead className="min-w-[220px]">備考</TableHead>
                   <TableHead>状態</TableHead>
                   <TableHead className="text-right">操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {pagedItemStates.map(({ item, validation, quantity, subtotal, total }) => (
+                {pagedItemStates.map(({ item, validation, quantity, subtotal }) => (
                   <TableRow key={item.sku} className={!validation.isValid ? 'bg-red-50/60 dark:bg-red-950/20' : ''}>
                     <TableCell className="align-top">
                       <div className="space-y-1 whitespace-normal">
                         <p className="font-semibold">{item.name}</p>
                         <p className="text-xs text-muted-foreground">SKU: {item.sku}</p>
                         <p className="text-xs text-muted-foreground">ASIN: {item.asin}</p>
-                      </div>
-                    </TableCell>
-                    <TableCell className="align-top">
-                      <div className="space-y-1 text-xs text-muted-foreground whitespace-normal">
                         <p>最小ロット: {item.minLot}セット</p>
                         <p>セット個数: {item.setSize}個</p>
                       </div>
@@ -411,7 +405,6 @@ export function OrdersCartView() {
                     <TableCell className="text-right align-top font-medium">{quantity}個</TableCell>
                     <TableCell className="text-right align-top">¥{item.unitPrice.toLocaleString()}</TableCell>
                     <TableCell className="text-right align-top font-medium">¥{subtotal.toLocaleString()}</TableCell>
-                    <TableCell className="text-right align-top font-semibold">¥{Math.round(total).toLocaleString()}</TableCell>
                     <TableCell className="align-top">
                       <Input
                         id={`cart-remarks-${item.sku}`}

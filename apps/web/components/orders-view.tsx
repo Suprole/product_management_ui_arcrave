@@ -1,10 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Alert, AlertDescription } from '@/components/ui/alert'
 import { OrdersTable } from '@/components/orders-table'
 import { OrdersFilter } from '@/components/orders-filter'
 import { ShoppingCart, Mail, Package, TrendingUp } from 'lucide-react'
@@ -12,21 +10,10 @@ import Link from 'next/link'
 import type { Order, OrderFilters } from '@/lib/types'
 
 export function OrdersView() {
-  const searchParams = useSearchParams()
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [filters, setFilters] = useState<OrderFilters>(() => ({
-    batchId: searchParams.get('batchId') || undefined,
-  }))
-
-  useEffect(() => {
-    const batchId = searchParams.get('batchId') || undefined
-    setFilters((current) => {
-      if (current.batchId === batchId) return current
-      return { ...current, batchId }
-    })
-  }, [searchParams])
+  const [filters, setFilters] = useState<OrderFilters>({})
   
   // データ取得
   const fetchOrders = async () => {
@@ -126,14 +113,6 @@ export function OrdersView() {
         </Link>
       </div>
 
-      {filters.batchId && (
-        <Alert>
-          <AlertDescription>
-            batchId <span className="font-mono">{filters.batchId}</span> で絞り込んで表示しています。
-          </AlertDescription>
-        </Alert>
-      )}
-      
       {/* テーブル */}
       {loading ? (
         <Card>

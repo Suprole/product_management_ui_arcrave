@@ -6,8 +6,8 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 
 export const metadata = {
-  title: '新規発注作成 | 商品管理システム',
-  description: '新しい発注を作成',
+  title: '発注作成 | 商品管理システム',
+  description: '発注カートへの互換導線',
 }
 
 export default function OrderCreatePage() {
@@ -24,9 +24,9 @@ export default function OrderCreatePage() {
             </Button>
           </Link>
           
-          <h1 className="text-3xl font-bold tracking-tight">新規発注作成</h1>
+          <h1 className="text-3xl font-bold tracking-tight">発注作成</h1>
           <p className="text-muted-foreground mt-1">
-            商品を検索して発注を作成します
+            旧作成導線から発注カートへ案内します
           </p>
         </div>
 

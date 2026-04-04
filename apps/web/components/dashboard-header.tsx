@@ -1,11 +1,13 @@
 "use client"
 
 import Link from "next/link"
-import { Package } from "lucide-react"
+import { Package, ShoppingCart } from "lucide-react"
 import { usePathname } from "next/navigation"
+import { useOrderCart } from "@/lib/order-cart"
 
 export function DashboardHeader() {
   const pathname = usePathname()
+  const { summary } = useOrderCart()
 
   return (
     <header className="border-b border-border bg-card">
@@ -69,9 +71,22 @@ export function DashboardHeader() {
             </nav>
           </div>
 
-          {/* <div className="flex items-center gap-4">
-            <div className="text-sm text-muted-foreground">最終更新: 2025/10/20</div>
-          </div> */}
+          <div className="flex items-center gap-3">
+            <Link
+              href="/orders/cart"
+              className={`inline-flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
+                pathname === "/orders/cart"
+                  ? "border-primary text-primary"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <ShoppingCart className="h-4 w-4" />
+              発注カート
+              <span className="rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground">
+                {summary.itemCount}
+              </span>
+            </Link>
+          </div>
         </div>
       </div>
     </header>

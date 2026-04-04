@@ -6,11 +6,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { Search, ArrowUpDown, Loader2, ShoppingCart } from "lucide-react"
+import { Search, ArrowUpDown, Loader2 } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 // import from API instead of mock data
 import Link from "next/link"
 import { getCurrentMonthToDateTokyo } from "@/lib/date-range"
+import { AddToCartButton } from "@/components/add-to-cart-dialog"
 
 type UIProduct = {
   sku: string
@@ -271,16 +272,13 @@ export function ProductsTable() {
                     )}
                   </TableCell>
                   <TableCell>
-                    <Link href={`/orders/create?sku=${product.sku}`}>
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        className="flex items-center gap-1"
-                      >
-                        <ShoppingCart className="h-3.5 w-3.5" />
-                        発注
-                      </Button>
-                    </Link>
+                    <AddToCartButton
+                      sku={product.sku}
+                      label="カートに追加"
+                      size="sm"
+                      variant="outline"
+                      className="flex items-center gap-1"
+                    />
                   </TableCell>
                 </TableRow>
               ))}

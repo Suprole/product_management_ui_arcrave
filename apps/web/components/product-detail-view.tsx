@@ -10,6 +10,7 @@ import Link from "next/link"
 import { ProductSalesChart } from "./product-sales-chart"
 import { ProductInventoryChart } from "./product-inventory-chart"
 import { ProductCartWinChart } from "./product-cart-win-chart"
+import { AddToCartButton } from "@/components/add-to-cart-dialog"
 
 type ProductData = {
   productName: string
@@ -250,15 +251,12 @@ export function ProductDetailView({ sku }: { sku: string }) {
           >
             {product.currentStock === 0 ? "在庫切れ" : product.currentStock < 20 ? "在庫不足" : "在庫あり"}
           </Badge>
-          <Link href={`/orders/create?sku=${product.sku}`}>
-            <Button 
-              size="default" 
-              className="flex items-center gap-2"
-            >
-              <ShoppingCart className="h-4 w-4" />
-              この商品を発注する
-            </Button>
-          </Link>
+          <AddToCartButton
+            sku={product.sku}
+            label="この商品をカートに追加"
+            size="default"
+            className="flex items-center gap-2"
+          />
         </div>
       </div>
 

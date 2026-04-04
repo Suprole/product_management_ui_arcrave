@@ -149,6 +149,7 @@ export type OrderStatus =
 // Order
 export type Order = {
   po_id: string
+  batchId?: string
   sku: string
   asin: string
   productCode: string
@@ -184,6 +185,26 @@ export type CreateOrderInput = {
   remarks?: string
   createdBy: string
 }
+
+export type BatchCreateOrderInput = {
+  items: Array<{
+    sku: string
+    setCount: number
+    taxRate?: number
+    remarks?: string
+  }>
+  seller?: string
+  createdBy: string
+}
+
+export type BatchCreateOrderResponse =
+  | {
+      success: true
+      batchId: string
+      poIds: string[]
+      createdCount: number
+    }
+  | ApiError
 
 // Update Order Input
 export type UpdateOrderInput = {
@@ -221,6 +242,13 @@ export type ProductSearchResult = {
   hasExpiry: boolean // 消費期限要フラグ
 }
 
+export type CartItem = ProductSearchResult & {
+  setCount: number
+  taxRate: number
+  remarks: string
+  addedAt: string
+}
+
 export type ProductSearchResponse = { items: ProductSearchResult[]; total: number } | ApiError
 
 // Master View (商品マスタ + 仕入れマスタ結合)
@@ -230,6 +258,7 @@ export type MasterViewResponse = { items: MasterItem[]; total: number } | ApiErr
 // Order Filters (for list page)
 export type OrderFilters = {
   po_id?: string
+  batchId?: string
   statuses?: OrderStatus[]
   sku?: string
   asin?: string

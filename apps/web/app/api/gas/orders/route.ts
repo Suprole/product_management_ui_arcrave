@@ -24,6 +24,7 @@ export async function GET(req: NextRequest) {
   // フィルタパラメータを転送
   const filterParams = [
     'po_id',
+    'batchId',
     'statuses',
     'sku',
     'asin',

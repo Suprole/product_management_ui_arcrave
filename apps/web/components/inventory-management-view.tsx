@@ -4,10 +4,11 @@ import { useState, useEffect } from "react"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { AlertTriangle, Package, TrendingUp, AlertCircle, Loader2, ShoppingCart } from "lucide-react"
+import { AlertTriangle, Package, TrendingUp, AlertCircle, Loader2 } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import Link from "next/link"
 import { InventoryChart } from "./inventory-chart"
+import { AddToCartButton } from "@/components/add-to-cart-dialog"
 
 export function InventoryManagementView() {
   const [products, setProducts] = useState<any[]>([])
@@ -170,16 +171,13 @@ export function InventoryManagementView() {
                       <p className="text-sm text-green-500">推奨発注: {p.recommendedOrderQty}個</p>
                     )}
                   </div>
-                  <Link href={`/orders/create?sku=${p.sku}`}>
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      className="flex items-center gap-1"
-                    >
-                      <ShoppingCart className="h-3.5 w-3.5" />
-                      発注
-                    </Button>
-                  </Link>
+                  <AddToCartButton
+                    sku={p.sku}
+                    label="カートに追加"
+                    size="sm"
+                    variant="outline"
+                    className="flex items-center gap-1"
+                  />
                 </div>
               </div>
             ))}
@@ -218,16 +216,13 @@ export function InventoryManagementView() {
                     {product.currentStock}個
                   </p>
                 </div>
-                <Link href={`/orders/create?sku=${product.sku}`}>
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    className="flex items-center gap-1"
-                  >
-                    <ShoppingCart className="h-3.5 w-3.5" />
-                    発注
-                  </Button>
-                </Link>
+                <AddToCartButton
+                  sku={product.sku}
+                  label="カートに追加"
+                  size="sm"
+                  variant="outline"
+                  className="flex items-center gap-1"
+                />
               </div>
             </div>
           ))}

@@ -1,19 +1,32 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { OrdersTable } from '@/components/orders-table'
 import { OrdersFilter } from '@/components/orders-filter'
-import { Plus, Mail, Package, TrendingUp } from 'lucide-react'
+import { ShoppingCart, Mail, Package, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
 import type { Order, OrderFilters } from '@/lib/types'
 
 export function OrdersView() {
+  const searchParams = useSearchParams()
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [filters, setFilters] = useState<OrderFilters>({})
+  const [filters, setFilters] = useState<OrderFilters>(() => ({
+    batchId: searchParams.get('batchId') || undefined,
+  }))
+
+  useEffect(() => {
+    const batchId = searchParams.get('batchId') || undefined
+    setFilters((current) => {
+      if (current.batchId === batchId) return current
+      return { ...current, batchId }
+    })
+  }, [searchParams])
   
   // データ取得
   const fetchOrders = async () => {
@@ -24,6 +37,7 @@ export function OrdersView() {
       const params = new URLSearchParams()
       
       if (filters.po_id) params.set('po_id', filters.po_id)
+      if (filters.batchId) params.set('batchId', filters.batchId)
       if (filters.statuses && filters.statuses.length > 0) {
         params.set('statuses', filters.statuses.join(','))
       }
@@ -104,13 +118,21 @@ export function OrdersView() {
       <div className="flex items-center justify-between">
         <OrdersFilter filters={filters} onFiltersChange={setFilters} />
         
-        <Link href="/orders/create">
+        <Link href="/orders/cart">
           <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            新規発注
+            <ShoppingCart className="mr-2 h-4 w-4" />
+            発注カート
           </Button>
         </Link>
       </div>
+
+      {filters.batchId && (
+        <Alert>
+          <AlertDescription>
+            batchId <span className="font-mono">{filters.batchId}</span> で絞り込んで表示しています。
+          </AlertDescription>
+        </Alert>
+      )}
       
       {/* テーブル */}
       {loading ? (

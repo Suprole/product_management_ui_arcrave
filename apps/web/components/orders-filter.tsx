@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Filter, X } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { OrderFilters, OrderStatus } from '@/lib/types'
 import { STATUS_LABELS } from '@/lib/types'
 
@@ -35,6 +35,10 @@ const ALL_STATUSES: OrderStatus[] = [
 export function OrdersFilter({ filters, onFiltersChange }: OrdersFilterProps) {
   const [localFilters, setLocalFilters] = useState<OrderFilters>(filters)
   const [isOpen, setIsOpen] = useState(false)
+
+  useEffect(() => {
+    setLocalFilters(filters)
+  }, [filters])
   
   const handleApply = () => {
     onFiltersChange(localFilters)
@@ -88,6 +92,18 @@ export function OrdersFilter({ filters, onFiltersChange }: OrdersFilterProps) {
               value={localFilters.po_id || ''}
               onChange={(e) =>
                 setLocalFilters({ ...localFilters, po_id: e.target.value || undefined })
+              }
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="batchId">batchId</Label>
+            <Input
+              id="batchId"
+              placeholder="BATCH-20260404-0001"
+              value={localFilters.batchId || ''}
+              onChange={(e) =>
+                setLocalFilters({ ...localFilters, batchId: e.target.value || undefined })
               }
             />
           </div>

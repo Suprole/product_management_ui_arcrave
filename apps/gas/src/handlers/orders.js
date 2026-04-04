@@ -70,6 +70,7 @@ function getOrders_(filters) {
     
     return {
       po_id: String(order.po_id || ''),
+      batchId: String(order.batch_id || ''),
       sku: sku,
       asin: String(order.ASIN || ''),
       productCode: String(order['商品コード'] || ''),
@@ -97,6 +98,10 @@ function getOrders_(filters) {
   // フィルタ適用
   if (filters.po_id) {
     orders = orders.filter(function(o) { return o.po_id === filters.po_id; });
+  }
+
+  if (filters.batchId) {
+    orders = orders.filter(function(o) { return o.batchId === filters.batchId; });
   }
   
   if (filters.statuses && filters.statuses.length > 0) {
@@ -167,6 +172,7 @@ function handleGetOrders_(e) {
   
   var filters = {
     po_id: p.po_id || null,
+    batchId: p.batchId || null,
     statuses: p.statuses ? String(p.statuses).split(',') : null,
     sku: p.sku || null,
     asin: p.asin || null,
@@ -185,90 +191,113 @@ function handleGetOrders_(e) {
 // 発注作成
 // ============================================================
 
+function generateBatchId_() {
+  return 'BATCH-' + Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyyMMdd-HHmmss') + '-' + ('000' + Math.floor(Math.random() * 1000)).slice(-3);
+}
+
+function buildOrderRecord_(input, batchId) {
+  if (!input) throw new Error('入力データが空です');
+  if (!input.sku) throw new Error('SKUは必須です');
+  if (!input.setCount || input.setCount <= 0) {
+    throw new Error('セット数は1以上を指定してください');
+  }
+
+  var productMap = getProductMasterMap_();
+  var product = productMap[input.sku];
+  if (!product) {
+    throw new Error('商品マスタに存在しないSKUです: ' + input.sku);
+  }
+
+  var purchaseInfo = getPurchaseInfo_(product.asin);
+  if (!purchaseInfo) {
+    throw new Error('仕入れマスタに存在しないASINです: ' + product.asin);
+  }
+
+  if (purchaseInfo.minLot > 0) {
+    var remainder = input.setCount % purchaseInfo.minLot;
+    if (remainder !== 0) {
+      throw new Error(
+        'セット数は最小ロット(' + purchaseInfo.minLot +
+        ')の倍数で指定してください（現在: ' + input.setCount + '）'
+      );
+    }
+  }
+
+  var setSize = purchaseInfo.setSize;
+  var unitPrice = round_(purchaseInfo.purchasePrice / setSize, 2);
+  var quantity = input.setCount * setSize;
+  var subtotal = round_(unitPrice * quantity, 2);
+  var taxRate = input.taxRate !== undefined ? input.taxRate : 0.1;
+  var now = new Date();
+  var orderDate = input.orderDate ? parseDate_(input.orderDate) : now;
+  if (!orderDate) orderDate = now;
+
+  return {
+    po_id: generatePoId_(),
+    batch_id: batchId || '',
+    SKU: input.sku,
+    ASIN: product.asin,
+    '商品コード': product.productCode || '',
+    '商品名': product.name || '',
+    '発注日': orderDate,
+    '発注先セラー': input.seller || 'Suprole',
+    '発注数量（個）': quantity,
+    'セット数': input.setCount,
+    'セット個数': setSize,
+    '単価（税抜/個）': unitPrice,
+    '税抜純売上高': subtotal,
+    '消費税率': taxRate,
+    '伝票No.': '',
+    '到着予定日': null,
+    'ステータス': '依頼中',
+    '備考': input.remarks || '',
+    created_by: input.createdBy || '',
+    created_at: now,
+    last_updated_by: input.createdBy || '',
+    last_updated_at: now
+  };
+}
+
+function buildRowFromHeaders_(headers, record) {
+  return headers.map(function(header) {
+    return Object.prototype.hasOwnProperty.call(record, header) ? record[header] : '';
+  });
+}
+
+function ensureOrdersSheetHeaders_(sheet) {
+  var data = sheet.getDataRange().getValues();
+  if (!data || data.length === 0) {
+    throw new Error('発注管理シートが空です');
+  }
+
+  var headers = data[0].map(function(header) { return String(header); });
+  if (headers.indexOf('batch_id') === -1) {
+    sheet.getRange(1, headers.length + 1).setValue('batch_id');
+    headers.push('batch_id');
+  }
+
+  return headers;
+}
+
+function appendOrderRecord_(sheet, record) {
+  var headers = ensureOrdersSheetHeaders_(sheet);
+  var row = buildRowFromHeaders_(headers, record);
+  sheet.appendRow(row);
+}
+
 /**
  * 発注作成
  * @param {Object} input
  * @return {Object}
  */
 function createOrder_(input) {
-  // バリデーション
-  if (!input) throw new Error('入力データが空です');
-  if (!input.sku) throw new Error('SKUは必須です');
-  if (!input.setCount || input.setCount <= 0) {
-    throw new Error('セット数は1以上を指定してください');
-  }
-  
-  // 商品マスタから情報取得
-  var productMap = getProductMasterMap_();
-  var product = productMap[input.sku];
-  if (!product) {
-    throw new Error('商品マスタに存在しないSKUです: ' + input.sku);
-  }
-  
-  // 仕入れマスタから情報取得
-  var purchaseInfo = getPurchaseInfo_(product.asin);
-  if (!purchaseInfo) {
-    throw new Error('仕入れマスタに存在しないASINです: ' + product.asin);
-  }
-  
-  // 最小ロットチェック
-  if (purchaseInfo.minLot > 0) {
-    var remainder = input.setCount % purchaseInfo.minLot;
-    if (remainder !== 0) {
-      throw new Error(
-        'セット数は最小ロット(' + purchaseInfo.minLot + 
-        ')の倍数で指定してください（現在: ' + input.setCount + '）'
-      );
-    }
-  }
-  
-  // 計算
-  var setSize = purchaseInfo.setSize;
-  var unitPrice = round_(purchaseInfo.purchasePrice / setSize, 2);
-  var quantity = input.setCount * setSize;
-  var subtotal = round_(unitPrice * quantity, 2);
-  var taxRate = input.taxRate !== undefined ? input.taxRate : 0.1;
-  
-  // po_id生成
-  var poId = generatePoId_();
-  
-  // 発注日
-  var now = new Date();
-  var orderDate = input.orderDate ? parseDate_(input.orderDate) : now;
-  if (!orderDate) orderDate = now;
-  
-  // 発注レコード作成（シート列順に合わせる）
-  var orderRow = [
-    poId,                              // po_id
-    input.sku,                         // SKU
-    product.asin,                      // ASIN
-    product.productCode || '',         // 商品コード
-    product.name || '',                // 商品名
-    orderDate,                         // 発注日
-    input.seller || 'Suprole',        // 発注先セラー
-    quantity,                          // 発注数量（個）
-    input.setCount,                    // セット数
-    setSize,                           // セット個数
-    unitPrice,                         // 単価（税抜/個）
-    subtotal,                          // 税抜純売上高
-    taxRate,                           // 消費税率
-    '',                                // 伝票No.
-    null,                              // 到着予定日
-    '依頼中',                          // ステータス
-    input.remarks || '',               // 備考
-    input.createdBy || '',             // created_by
-    now,                               // created_at
-    input.createdBy || '',             // last_updated_by
-    now                                // last_updated_at
-  ];
-  
-  // シートに追加
   var sheet = openOrdersSheet_();
-  sheet.appendRow(orderRow);
-  
-  Logger.log('発注作成成功: ' + poId + ' (SKU: ' + input.sku + ', 数量: ' + quantity + '個)');
-  
-  return { success: true, po_id: poId };
+  var record = buildOrderRecord_(input, input.batchId || '');
+  appendOrderRecord_(sheet, record);
+
+  Logger.log('発注作成成功: ' + record.po_id + ' (SKU: ' + input.sku + ', 数量: ' + record['発注数量（個）'] + '個)');
+
+  return { success: true, po_id: record.po_id, batchId: record.batch_id || '' };
 }
 
 /**
@@ -276,6 +305,42 @@ function createOrder_(input) {
  */
 function handleCreateOrder_(payload) {
   return json_(createOrder_(payload));
+}
+
+function createOrdersBatch_(payload) {
+  if (!payload || !payload.items || !Array.isArray(payload.items) || payload.items.length === 0) {
+    throw new Error('itemsは必須です');
+  }
+
+  var sheet = openOrdersSheet_();
+  var batchId = generateBatchId_();
+  var poIds = [];
+
+  payload.items.forEach(function(item) {
+    var record = buildOrderRecord_({
+      sku: item.sku,
+      setCount: item.setCount,
+      taxRate: item.taxRate,
+      remarks: item.remarks,
+      seller: payload.seller,
+      createdBy: payload.createdBy,
+      orderDate: payload.orderDate
+    }, batchId);
+
+    appendOrderRecord_(sheet, record);
+    poIds.push(record.po_id);
+  });
+
+  return {
+    success: true,
+    batchId: batchId,
+    poIds: poIds,
+    createdCount: poIds.length
+  };
+}
+
+function handleCreateOrdersBatch_(payload) {
+  return json_(createOrdersBatch_(payload));
 }
 
 // ============================================================

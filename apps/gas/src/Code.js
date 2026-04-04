@@ -45,6 +45,7 @@ function doPost(e) {
     
     // アクションルーティング
     if (action === 'createOrder') return handleCreateOrder_(payload);
+    if (action === 'createOrdersBatch') return handleCreateOrdersBatch_(payload);
     if (action === 'updateOrder') return handleUpdateOrder_(payload);
     if (action === 'deleteOrder') return handleDeleteOrder_(payload);
     if (action === 'changeStatus') return handleChangeStatus_(payload);

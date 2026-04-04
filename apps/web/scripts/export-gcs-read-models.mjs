@@ -154,6 +154,18 @@ async function exportSnapshot({ bucket, prefix, endpoint, query, payload, localD
   }
 }
 
+async function runWithConcurrency(items, concurrency, worker) {
+  const queue = items.slice()
+  const runners = Array.from({ length: Math.max(1, concurrency) }, async () => {
+    while (queue.length > 0) {
+      const item = queue.shift()
+      if (item === undefined) return
+      await worker(item)
+    }
+  })
+  await Promise.all(runners)
+}
+
 async function main() {
   const prefix = (process.env.GCS_JSON_PREFIX || DEFAULT_PREFIX).replace(/^\/+|\/+$/g, '')
   const bucketName = process.env.GCS_JSON_BUCKET
@@ -162,6 +174,7 @@ async function main() {
   const today = new Date()
   const monthToDate = getCurrentMonthToDateTokyo(today)
   const productLimit = Number(process.env.GCS_PRODUCT_EXPORT_LIMIT || '0')
+  const productConcurrency = Number(process.env.GCS_PRODUCT_EXPORT_CONCURRENCY || '8')
 
   if (!bucketName && !localDir) {
     throw new Error('Set either GCS_JSON_BUCKET or GCS_JSON_LOCAL_DIR')
@@ -247,20 +260,24 @@ async function main() {
 
   const limitedSkus = productLimit > 0 ? skus.slice(0, productLimit) : skus
 
-  for (const sku of limitedSkus) {
+  let exportedProductCount = 0
+  await runWithConcurrency(limitedSkus, productConcurrency, async (sku) => {
     const payload = await fetchGasJson('product', { sku })
-    manifest.entries.push(
-      await exportSnapshot({
-        bucket,
-        prefix,
-        endpoint: 'product',
-        query: { sku },
-        payload,
-        localDir,
-        dryRun,
-      }),
-    )
-  }
+    const entry = await exportSnapshot({
+      bucket,
+      prefix,
+      endpoint: 'product',
+      query: { sku },
+      payload,
+      localDir,
+      dryRun,
+    })
+    manifest.entries.push(entry)
+    exportedProductCount += 1
+    if (exportedProductCount % 10 === 0 || exportedProductCount === limitedSkus.length) {
+      console.log(`exported product snapshots: ${exportedProductCount}/${limitedSkus.length}`)
+    }
+  })
 
   const manifestObjectPath = `${prefix}/manifest.json`
   await ensureLocalWrite(localDir, manifestObjectPath, manifest)

@@ -43,7 +43,7 @@ function getStorageClient() {
 }
 
 function getSnapshotPrefix() {
-  return (process.env.GCS_JSON_PREFIX || DEFAULT_PREFIX).replace(/^\/+|\/+$/g, '')
+  return (process.env.GCS_JSON_PREFIX || DEFAULT_PREFIX).trim().replace(/^\/+|\/+$/g, '')
 }
 
 function encodeSegment(value: string) {

@@ -36,7 +36,7 @@ export function AddToCartButton({
   const [taxRate, setTaxRate] = useState('10')
   const [remarks, setRemarks] = useState('')
   const { toast } = useToast()
-  const { getItem } = useOrderCart()
+  const { getItem, validateItem } = useOrderCart()
 
   const existingItem = useMemo(() => getItem(sku), [getItem, sku, open])
 
@@ -76,7 +76,7 @@ export function AddToCartButton({
   const numericSetCount = Number(setCount || 0)
   const numericTaxRate = Number(taxRate || 0) / 100
   const validation = product
-    ? validateCartItem({
+    ? validateItem({
         setCount: numericSetCount,
         minLot: product.minLot,
         setSize: product.setSize,

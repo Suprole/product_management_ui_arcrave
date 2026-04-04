@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
+import { Progress } from '@/components/ui/progress'
 import {
   Table,
   TableBody,
@@ -43,6 +44,8 @@ type SuccessState = {
   createdCount: number
   subtotal: number
   total: number
+  mailSentCount: number
+  mailError?: string
 }
 
 function calculateLine(item: CartItem) {
@@ -66,6 +69,8 @@ export function OrdersCartView() {
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [successState, setSuccessState] = useState<SuccessState | null>(null)
+  const [submitProgress, setSubmitProgress] = useState(0)
+  const [submitStage, setSubmitStage] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [rowsPerPage, setRowsPerPage] = useState(10)
 
@@ -135,6 +140,9 @@ export function OrdersCartView() {
   const handleSubmitBatch = async () => {
     setSubmitting(true)
     setSubmitError(null)
+    setSubmitProgress(10)
+    setSubmitStage('発注データを送信しています...')
+    setConfirmOpen(false)
 
     try {
       const res = await fetch('/api/gas/orders/batch', {
@@ -157,6 +165,27 @@ export function OrdersCartView() {
         throw new Error(('error' in data && data.error) || '一括発注に失敗しました')
       }
 
+      setSubmitProgress(65)
+      setSubmitStage('発注を作成しました。依頼メールを送信しています...')
+
+      const mailRes = await fetch('/api/gas/orders/mail', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'request',
+          poIds: data.poIds,
+        }),
+      })
+
+      const mailData = await mailRes.json()
+      const mailError =
+        !mailRes.ok || ('error' in mailData && mailData.error)
+          ? ('error' in mailData && mailData.error) || '依頼メール送信に失敗しました'
+          : null
+
+      setSubmitProgress(100)
+      setSubmitStage(mailError ? '発注は完了しましたが、依頼メール送信に失敗しました。' : '依頼メール送信が完了しました。')
+
       clearCart()
       setSuccessState({
         batchId: data.batchId,
@@ -164,14 +193,26 @@ export function OrdersCartView() {
         createdCount: data.createdCount,
         subtotal: summary.subtotal,
         total: summary.total,
+        mailSentCount: mailError ? 0 : Number(mailData.sentCount || 0),
+        mailError: mailError || undefined,
       })
-      setConfirmOpen(false)
-      toast({
-        title: '一括発注が完了しました',
-        description: `${data.createdCount}件の発注を作成しました`,
-      })
+
+      if (mailError) {
+        toast({
+          title: '発注は完了しました',
+          description: `発注 ${data.createdCount}件は作成済みですが、依頼メール送信でエラーが発生しました。`,
+          variant: 'destructive',
+        })
+      } else {
+        toast({
+          title: '一括発注が完了しました',
+          description: `${data.createdCount}件の発注を作成し、依頼メールを送信しました`,
+        })
+      }
     } catch (error) {
       setSubmitError(error instanceof Error ? error.message : '一括発注に失敗しました')
+      setSubmitProgress(0)
+      setSubmitStage('')
     } finally {
       setSubmitting(false)
     }
@@ -188,7 +229,7 @@ export function OrdersCartView() {
             </p>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-4">
             <Card>
               <CardContent className="p-4">
                 <p className="text-sm text-muted-foreground">作成件数</p>
@@ -207,7 +248,22 @@ export function OrdersCartView() {
                 <p className="text-2xl font-bold">¥{Math.round(successState.total).toLocaleString()}</p>
               </CardContent>
             </Card>
+            <Card>
+              <CardContent className="p-4">
+                <p className="text-sm text-muted-foreground">依頼メール送信</p>
+                <p className="text-2xl font-bold">{successState.mailError ? '失敗' : `${successState.mailSentCount}件`}</p>
+              </CardContent>
+            </Card>
           </div>
+
+          {successState.mailError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                発注作成は完了していますが、依頼メール送信に失敗しました。発注一覧から再送してください。
+              </AlertDescription>
+            </Alert>
+          )}
 
           <div className="rounded-lg border bg-background p-4">
             <p className="font-semibold">作成された発注ID</p>
@@ -298,17 +354,17 @@ export function OrdersCartView() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" onClick={handleRefreshProducts} disabled={refreshingProducts}>
+            <Button variant="outline" onClick={handleRefreshProducts} disabled={refreshingProducts || submitting}>
               {refreshingProducts ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
               最新情報で再計算
             </Button>
-            <Button variant="outline" onClick={() => clearCart()}>
+            <Button variant="outline" onClick={() => clearCart()} disabled={submitting}>
               <Trash2 className="mr-2 h-4 w-4" />
               カートを空にする
             </Button>
             <Button onClick={() => setConfirmOpen(true)} disabled={hasInvalidItems || submitting}>
               {submitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              一括発注する
+              {submitting ? '処理中...' : '一括発注する'}
             </Button>
           </div>
         </CardHeader>
@@ -318,6 +374,19 @@ export function OrdersCartView() {
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>{submitError}</AlertDescription>
             </Alert>
+          )}
+
+          {submitting && (
+            <div className="rounded-lg border bg-muted/40 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="font-medium">一括発注を処理中です</p>
+                  <p className="text-sm text-muted-foreground">{submitStage}</p>
+                </div>
+                <span className="text-sm font-medium">{submitProgress}%</span>
+              </div>
+              <Progress value={submitProgress} className="mt-3 h-3" />
+            </div>
           )}
 
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">

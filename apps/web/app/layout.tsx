@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { Suspense } from 'react'
 import { LoadingBar } from '@/components/loading-bar'
+import { BrowserApiDebugger } from '@/components/browser-api-debugger'
 import { SessionProvider } from '@/components/session-provider'
 import './globals.css'
 
@@ -27,6 +28,7 @@ export default function RootLayout({
           <Suspense fallback={null}>
             <LoadingBar />
           </Suspense>
+          <BrowserApiDebugger />
           {children}
           <Analytics />
         </SessionProvider>

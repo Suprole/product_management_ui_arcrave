@@ -6,6 +6,7 @@ import { getReadSourceMode, type ReadEndpointKey } from '@/lib/server/read-endpo
 type QueryValue = string | undefined
 type QueryRecord = Record<string, QueryValue>
 type SnapshotResult<T> = { data: T; objectPath: string } | null
+type ReadResult<T> = { data: T; source: 'snapshot' | 'gas'; objectPath?: string }
 
 const DEFAULT_PREFIX = 'read-models/v1'
 let storageClient: Storage | null = null
@@ -132,7 +133,7 @@ export async function readRangeModel<T>(
   endpoint: Extract<ReadEndpointKey, 'dashboard' | 'products' | 'alerts'>,
   gasPath: string,
   query: QueryRecord,
-) {
+): Promise<ReadResult<T>> {
   const canUseSnapshot = !hasUnsupportedQueryKeys(query, ['from', 'to', 'grain'])
 
   if (shouldUseSnapshotOnly() && !canUseSnapshot) {
@@ -153,7 +154,7 @@ export async function readRangeModel<T>(
   }
 }
 
-export async function readProductModel<T>(sku: string, query: QueryRecord) {
+export async function readProductModel<T>(sku: string, query: QueryRecord): Promise<ReadResult<T>> {
   const params = { ...query, sku }
   const canUseSnapshot = !hasUnsupportedQueryKeys(params, ['sku', 'from', 'to', 'grain'])
 
@@ -175,7 +176,7 @@ export async function readProductModel<T>(sku: string, query: QueryRecord) {
   }
 }
 
-export async function readMastersModel<T>() {
+export async function readMastersModel<T>(): Promise<ReadResult<T>> {
   if (shouldTrySnapshot()) {
     const snapshot = await fetchSnapshotObject<T>(buildSnapshotObjectPath('masters', {}))
     if (snapshot) return { ...snapshot, source: 'snapshot' as const }

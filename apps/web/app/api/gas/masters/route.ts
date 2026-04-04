@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import type { MasterViewResponse } from '@/lib/types'
 import { getResponseStatus } from '@/lib/server/gas'
+import { withReadDebugHeaders } from '@/lib/server/read-debug'
 import { filterMasterItems, readMastersModel } from '@/lib/server/read-models'
 
 /**
@@ -16,9 +17,11 @@ import { filterMasterItems, readMastersModel } from '@/lib/server/read-models'
  * - limit: 最大件数
  */
 export async function GET(req: NextRequest) {
+  const startedAt = Date.now()
   try {
     const searchParams = req.nextUrl.searchParams
-    const { data } = await readMastersModel<MasterViewResponse>()
+    const result = await readMastersModel<MasterViewResponse>()
+    const { data } = result
 
     if ('items' in data) {
       const items = filterMasterItems(data.items, {
@@ -29,10 +32,16 @@ export async function GET(req: NextRequest) {
         brand: searchParams.get('brand'),
         limit: searchParams.get('limit') ? Number(searchParams.get('limit')) : null,
       })
-      return NextResponse.json({ items, total: items.length })
+      return withReadDebugHeaders(
+        NextResponse.json({ items, total: items.length }),
+        { endpoint: 'masters', source: result.source, objectPath: result.objectPath, startedAt },
+      )
     }
 
-    return NextResponse.json(data, { status: getResponseStatus(data) })
+    return withReadDebugHeaders(
+      NextResponse.json(data, { status: getResponseStatus(data) }),
+      { endpoint: 'masters', source: result.source, objectPath: result.objectPath, startedAt },
+    )
   } catch (error) {
     console.error('Failed to fetch master view:', error)
     return NextResponse.json(

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { ShoppingCart, Loader2, AlertCircle } from 'lucide-react'
+import { Check, ShoppingCart, Loader2, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
-import { getOrderCartItem, upsertOrderCartItem, validateCartItem } from '@/lib/order-cart'
+import { upsertOrderCartItem, useOrderCart } from '@/lib/order-cart'
 import type { ProductSearchResult } from '@/lib/types'
 
 type AddToCartButtonProps = {
@@ -36,8 +36,9 @@ export function AddToCartButton({
   const [taxRate, setTaxRate] = useState('10')
   const [remarks, setRemarks] = useState('')
   const { toast } = useToast()
+  const { getItem } = useOrderCart()
 
-  const existingItem = useMemo(() => getOrderCartItem(sku), [open, sku])
+  const existingItem = useMemo(() => getItem(sku), [getItem, sku, open])
 
   useEffect(() => {
     if (!open) return
@@ -109,8 +110,8 @@ export function AddToCartButton({
   return (
     <>
       <Button size={size} variant={variant} className={className} onClick={() => setOpen(true)}>
-        <ShoppingCart className="mr-2 h-4 w-4" />
-        {label}
+        {existingItem ? <Check className="mr-2 h-4 w-4" /> : <ShoppingCart className="mr-2 h-4 w-4" />}
+        {existingItem ? '追加済' : label}
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>

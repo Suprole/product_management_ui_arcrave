@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import { AlertCircle, Loader2, RefreshCw, ShoppingCart, Trash2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import {
   AlertDialog,
@@ -23,8 +23,6 @@ import {
 import { useToast } from '@/hooks/use-toast'
 import { useOrderCart } from '@/lib/order-cart'
 import type { BatchCreateOrderResponse, CartItem, ProductSearchResult } from '@/lib/types'
-
-type PendingCounts = Record<string, number>
 
 type SuccessState = {
   batchId: string
@@ -50,8 +48,6 @@ function calculateLine(item: CartItem) {
 export function OrdersCartView() {
   const { toast } = useToast()
   const { items, summary, updateItem, removeItem, clearCart, validateItem } = useOrderCart()
-  const [pendingCounts, setPendingCounts] = useState<PendingCounts>({})
-  const [loadingPendingCounts, setLoadingPendingCounts] = useState(false)
   const [refreshingProducts, setRefreshingProducts] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -69,36 +65,6 @@ export function OrdersCartView() {
   )
 
   const hasInvalidItems = itemStates.some((state) => !state.validation.isValid)
-
-  useEffect(() => {
-    if (items.length === 0) {
-      setPendingCounts({})
-      return
-    }
-
-    const fetchPendingCounts = async () => {
-      setLoadingPendingCounts(true)
-
-      try {
-        const counts = await Promise.all(
-          items.map(async (item) => {
-            const params = new URLSearchParams({ sku: item.sku, statuses: '依頼中' })
-            const res = await fetch(`/api/gas/orders?${params.toString()}`, { cache: 'no-store' })
-            const data = await res.json()
-            return [item.sku, Array.isArray(data?.items) ? data.items.length : 0] as const
-          }),
-        )
-
-        setPendingCounts(Object.fromEntries(counts))
-      } catch (error) {
-        console.error('依頼中発注の件数取得に失敗しました:', error)
-      } finally {
-        setLoadingPendingCounts(false)
-      }
-    }
-
-    fetchPendingCounts()
-  }, [items])
 
   const handleFieldChange = (sku: string, patch: Partial<CartItem>) => {
     const target = items.find((item) => item.sku === sku)
@@ -330,24 +296,12 @@ export function OrdersCartView() {
             </Alert>
           )}
 
-          {loadingPendingCounts && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              依頼中発注の件数を確認中...
-            </div>
-          )}
-
           <div className="space-y-4">
             {itemStates.map(({ item, validation, quantity, subtotal, tax, total }) => (
               <div key={item.sku} className="rounded-lg border p-4">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <p className="font-semibold">{item.name}</p>
-                      {pendingCounts[item.sku] > 0 && (
-                        <Badge variant="secondary">依頼中 {pendingCounts[item.sku]}件</Badge>
-                      )}
-                    </div>
+                    <p className="font-semibold">{item.name}</p>
                     <p className="text-sm text-muted-foreground">
                       SKU: {item.sku} / ASIN: {item.asin}
                     </p>
@@ -423,15 +377,6 @@ export function OrdersCartView() {
                   </Alert>
                 )}
 
-                {pendingCounts[item.sku] > 0 && (
-                  <Alert className="mt-4 border-yellow-500 bg-yellow-50 dark:bg-yellow-950">
-                    <AlertTitle>依頼中の発注があります</AlertTitle>
-                    <AlertDescription>
-                      同じ SKU に対して既に依頼中の発注が存在します。重複発注に注意してください。
-                    </AlertDescription>
-                  </Alert>
-                )}
-
                 <div className="mt-4 flex flex-wrap gap-4 text-sm">
                   <span className="text-muted-foreground">消費税: ¥{Math.round(tax).toLocaleString()}</span>
                   <span className="font-semibold">税込合計: ¥{Math.round(total).toLocaleString()}</span>
@@ -446,9 +391,7 @@ export function OrdersCartView() {
         <AlertDialogContent className="max-w-2xl">
           <AlertDialogHeader>
             <AlertDialogTitle>一括発注を実行しますか？</AlertDialogTitle>
-            <AlertDialogDescription>
-              {items.length}件の SKU について発注を作成します。依頼中件数が表示されている商品は重複発注に注意してください。
-            </AlertDialogDescription>
+            <AlertDialogDescription>{items.length}件の SKU について発注を作成します。</AlertDialogDescription>
           </AlertDialogHeader>
 
           <div className="max-h-96 space-y-3 overflow-y-auto">
@@ -459,7 +402,6 @@ export function OrdersCartView() {
                     <p className="font-medium">{item.name}</p>
                     <p className="text-muted-foreground">SKU: {item.sku}</p>
                   </div>
-                  {pendingCounts[item.sku] > 0 && <Badge variant="secondary">依頼中 {pendingCounts[item.sku]}件</Badge>}
                 </div>
                 <div className="mt-2 flex flex-wrap gap-4 text-muted-foreground">
                   <span>{item.setCount}セット</span>

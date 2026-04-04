@@ -57,7 +57,7 @@ export function AddToCartButton({
         }
 
         const nextProduct = data.items[0] as ProductSearchResult
-        const cartItem = getOrderCartItem(sku)
+        const cartItem = getItem(sku)
 
         setProduct(nextProduct)
         setSetCount(String(cartItem?.setCount ?? nextProduct.minLot))

@@ -75,7 +75,8 @@
 }
 
 @theme inline {
-  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-sans: "Meiryo", "Hiragino Kaku Gothic ProN", "Yu Gothic", system-ui, sans-serif;
+  --font-mono: "Meiryo", "Hiragino Kaku Gothic ProN", "Yu Gothic", system-ui, sans-serif;
 
   /* Color Tokens - Dark Professional Dashboard Theme */
   --color-background: 10 10 12;
@@ -165,5 +166,6 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: "Meiryo", "Hiragino Kaku Gothic ProN", "Yu Gothic", system-ui, sans-serif;
   }
 }

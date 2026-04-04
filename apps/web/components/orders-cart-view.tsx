@@ -1,15 +1,28 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { AlertCircle, Loader2, RefreshCw, ShoppingCart, Trash2 } from 'lucide-react'
+import { AlertCircle, ChevronLeft, ChevronRight, Loader2, RefreshCw, ShoppingCart, Trash2 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -53,6 +66,8 @@ export function OrdersCartView() {
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [successState, setSuccessState] = useState<SuccessState | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [rowsPerPage, setRowsPerPage] = useState(10)
 
   const itemStates = useMemo(
     () =>
@@ -65,6 +80,15 @@ export function OrdersCartView() {
   )
 
   const hasInvalidItems = itemStates.some((state) => !state.validation.isValid)
+  const totalPages = Math.max(1, Math.ceil(itemStates.length / rowsPerPage))
+  const pageStart = (currentPage - 1) * rowsPerPage
+  const pagedItemStates = itemStates.slice(pageStart, pageStart + rowsPerPage)
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages)
+    }
+  }, [currentPage, totalPages])
 
   const handleFieldChange = (sku: string, patch: Partial<CartItem>) => {
     const target = items.find((item) => item.sku === sku)
@@ -296,93 +320,153 @@ export function OrdersCartView() {
             </Alert>
           )}
 
-          <div className="space-y-4">
-            {itemStates.map(({ item, validation, quantity, subtotal, tax, total }) => (
-              <div key={item.sku} className="rounded-lg border p-4">
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="space-y-1">
-                    <p className="font-semibold">{item.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      SKU: {item.sku} / ASIN: {item.asin}
-                    </p>
-                    <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                      <span>最小ロット: {item.minLot}セット</span>
-                      <span>セット個数: {item.setSize}個</span>
-                      <span>単価: ¥{item.unitPrice.toLocaleString()}</span>
-                    </div>
-                  </div>
-                  <Button variant="ghost" size="sm" onClick={() => removeItem(item.sku)}>
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    削除
-                  </Button>
-                </div>
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="text-sm text-muted-foreground">
+              {itemStates.length}件中 {pageStart + 1} - {Math.min(pageStart + rowsPerPage, itemStates.length)}件を表示
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">表示件数</span>
+              <Select
+                value={String(rowsPerPage)}
+                onValueChange={(value) => {
+                  setRowsPerPage(Number(value))
+                  setCurrentPage(1)
+                }}
+              >
+                <SelectTrigger size="sm" className="w-24">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10件</SelectItem>
+                  <SelectItem value="20">20件</SelectItem>
+                  <SelectItem value="50">50件</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
 
-                <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                  <div className="space-y-2">
-                    <Label htmlFor={`cart-set-count-${item.sku}`}>セット数</Label>
-                    <Input
-                      id={`cart-set-count-${item.sku}`}
-                      type="number"
-                      min={item.minLot}
-                      step={item.minLot}
-                      value={String(item.setCount)}
-                      onChange={(event) =>
-                        handleFieldChange(item.sku, { setCount: Number(event.target.value || 0) })
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor={`cart-tax-rate-${item.sku}`}>消費税率 (%)</Label>
-                    <Input
-                      id={`cart-tax-rate-${item.sku}`}
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="0.1"
-                      value={String(item.taxRate * 100)}
-                      onChange={(event) =>
-                        handleFieldChange(item.sku, { taxRate: Number(event.target.value || 0) / 100 })
-                      }
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>合計個数</Label>
-                    <div className="rounded-md border bg-muted px-3 py-2 text-sm font-medium">
-                      {quantity}個
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>税抜金額</Label>
-                    <div className="rounded-md border bg-muted px-3 py-2 text-sm font-medium">
-                      ¥{subtotal.toLocaleString()}
-                    </div>
-                  </div>
-                </div>
+          <div className="rounded-lg border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="min-w-[240px]">商品</TableHead>
+                  <TableHead>ロット情報</TableHead>
+                  <TableHead className="min-w-[110px]">セット数</TableHead>
+                  <TableHead className="min-w-[110px]">税率</TableHead>
+                  <TableHead className="text-right">合計個数</TableHead>
+                  <TableHead className="text-right">単価</TableHead>
+                  <TableHead className="text-right">税抜</TableHead>
+                  <TableHead className="text-right">税込</TableHead>
+                  <TableHead className="min-w-[220px]">備考</TableHead>
+                  <TableHead>状態</TableHead>
+                  <TableHead className="text-right">操作</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {pagedItemStates.map(({ item, validation, quantity, subtotal, total }) => (
+                  <TableRow key={item.sku} className={!validation.isValid ? 'bg-red-50/60 dark:bg-red-950/20' : ''}>
+                    <TableCell className="align-top">
+                      <div className="space-y-1 whitespace-normal">
+                        <p className="font-semibold">{item.name}</p>
+                        <p className="text-xs text-muted-foreground">SKU: {item.sku}</p>
+                        <p className="text-xs text-muted-foreground">ASIN: {item.asin}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell className="align-top">
+                      <div className="space-y-1 text-xs text-muted-foreground whitespace-normal">
+                        <p>最小ロット: {item.minLot}セット</p>
+                        <p>セット個数: {item.setSize}個</p>
+                      </div>
+                    </TableCell>
+                    <TableCell className="align-top">
+                      <Input
+                        id={`cart-set-count-${item.sku}`}
+                        type="number"
+                        min={item.minLot}
+                        step={item.minLot}
+                        value={String(item.setCount)}
+                        onChange={(event) =>
+                          handleFieldChange(item.sku, { setCount: Number(event.target.value || 0) })
+                        }
+                        className="w-24"
+                      />
+                    </TableCell>
+                    <TableCell className="align-top">
+                      <div className="flex items-center gap-1">
+                        <Input
+                          id={`cart-tax-rate-${item.sku}`}
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="0.1"
+                          value={String(item.taxRate * 100)}
+                          onChange={(event) =>
+                            handleFieldChange(item.sku, { taxRate: Number(event.target.value || 0) / 100 })
+                          }
+                          className="w-20"
+                        />
+                        <span className="text-sm text-muted-foreground">%</span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right align-top font-medium">{quantity}個</TableCell>
+                    <TableCell className="text-right align-top">¥{item.unitPrice.toLocaleString()}</TableCell>
+                    <TableCell className="text-right align-top font-medium">¥{subtotal.toLocaleString()}</TableCell>
+                    <TableCell className="text-right align-top font-semibold">¥{Math.round(total).toLocaleString()}</TableCell>
+                    <TableCell className="align-top">
+                      <Input
+                        id={`cart-remarks-${item.sku}`}
+                        value={item.remarks}
+                        onChange={(event) => handleFieldChange(item.sku, { remarks: event.target.value })}
+                        placeholder="備考"
+                        className="min-w-[180px]"
+                      />
+                    </TableCell>
+                    <TableCell className="align-top">
+                      {validation.isValid ? (
+                        <Badge variant="outline">OK</Badge>
+                      ) : (
+                        <div className="space-y-1 whitespace-normal">
+                          <Badge variant="destructive">要修正</Badge>
+                          <p className="text-xs text-red-600 dark:text-red-400">{validation.errors[0]}</p>
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-right align-top">
+                      <Button variant="ghost" size="sm" onClick={() => removeItem(item.sku)}>
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        削除
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
 
-                <div className="mt-4 space-y-2">
-                  <Label htmlFor={`cart-remarks-${item.sku}`}>備考</Label>
-                  <Textarea
-                    id={`cart-remarks-${item.sku}`}
-                    rows={2}
-                    value={item.remarks}
-                    onChange={(event) => handleFieldChange(item.sku, { remarks: event.target.value })}
-                    placeholder="必要があれば備考を入力"
-                  />
-                </div>
-
-                {!validation.isValid && (
-                  <Alert variant="destructive" className="mt-4">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{validation.errors[0]}</AlertDescription>
-                  </Alert>
-                )}
-
-                <div className="mt-4 flex flex-wrap gap-4 text-sm">
-                  <span className="text-muted-foreground">消費税: ¥{Math.round(tax).toLocaleString()}</span>
-                  <span className="font-semibold">税込合計: ¥{Math.round(total).toLocaleString()}</span>
-                </div>
-              </div>
-            ))}
+          <div className="flex flex-col gap-3 border-t pt-4 md:flex-row md:items-center md:justify-between">
+            <div className="text-sm text-muted-foreground">
+              ページ {currentPage} / {totalPages}
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft className="mr-1 h-4 w-4" />
+                前へ
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                disabled={currentPage === totalPages}
+              >
+                次へ
+                <ChevronRight className="ml-1 h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
